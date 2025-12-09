@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package serpentlab;
+
+option go_package = "github.com/stevenmed26/serpentlab/internal/grpcapi;grpcapi";
+
+// SnakeEnv defines a simple episodic environment for Snake.
+// The Python RL trainer will treat this like a remote Gym-style env.
+service SnakeEnv {
+  // Reset starts a new episode (or restarts an existing session).
+  rpc Reset(ResetRequest) returns (ResetResponse);
+
+  // Step advances the environment one tick with the given action.
+  rpc Step(StepRequest) returns (StepResponse);
+}
+
+// ResetRequest optionally specifies configuration overrides for the new episode.
+// session_id is optional; if empty, the server can generate one and return it.
+message ResetRequest {
+  string session_id = 1;
+
+  // Optional per-episode config (can be zero to use server defaults).
+  int32 width       = 2;
+  int32 height      = 3;
+  bool  with_walls  = 4;
+}
+
+// ResetResponse returns the initial state of the environment.
+message ResetResponse {
+  // The session_id that will be used for subsequent Step calls.
+  string session_id = 1;
+
+  // Flattened grid of size width * height.
+  // 0 = empty, 1 = snake, 2 = food, 3 = wall
+  repeated int32 grid = 2;
+
+  int32 width  = 3;
+  int32 height = 4;
+
+  // Score at the start of the episode (usually 0).
+  int32 score = 5;
+
+  // Episodes always start not-done, but included for consistency.
+  bool done = 6;
+}
+
+// StepRequest advances the current episode by one action.
+message StepRequest {
+  string session_id = 1;
+
+  // 0 = up, 1 = right, 2 = down, 3 = left
+  int32 action = 2;
+}
+
+// StepResponse returns the new state after the action.
+message StepResponse {
+  repeated int32 grid = 1;
+
+  int32 width  = 2;
+  int32 height = 3;
+
+  // Reward given for this transition.
+  float reward = 4;
+
+  // Whether this step ended the episode (death).
+  bool done = 5;
+
+  // Current cumulative score for this episode.
+  int32 score = 6;
+
+  // Optional: number of steps taken so far in this episode.
+  int32 step_index = 7;
+}
