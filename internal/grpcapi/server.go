@@ -43,7 +43,7 @@ func (s *EnvServer) Reset(ctx context.Context, req *ResetRequest) (*ResetRespons
 		Height:    int(req.GetHeight()),
 		WithWalls: req.GetWithWalls(),
 		// You can tune this later; 0 disables anti-stall.
-		MaxStepsWithoutFood: 0,
+		MaxStepsWithoutFood: 80,
 	}
 
 	g := game.NewGame(cfg)

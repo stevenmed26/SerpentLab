@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  env-gateway:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.env-gateway
+    container_name: serpentlab-env-gateway
+    environment:
+      # Inside the Docker network, use service name "policy-server"
+      POLICY_SERVER_URL: "http://policy-server:6000/act"
+    ports:
+      - "8080:8080"   # web UI
+      - "50051:50051" # gRPC (optional to expose)
+    depends_on:
+      - policy-server
+    # volumes: # if you want live-reload of web assets during dev, you can add:
+    #   - ./web:/app/web:ro
+
+  policy-server:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.python
+    container_name: serpentlab-policy-server
+    working_dir: /app/python/trainer
+    environment:
+      CHECKPOINT_PATH: "/app/python/models/checkpoints/snake_dqn_ep10000.pt"
+    command: >
+      sh -c "python policy_server.py --checkpoint $${CHECKPOINT_PATH}"
+    # If you want shared models with trainer container, see "volumes" in trainer service.
+
+  # Optional: trainer container (you can enable when you want training)
+  trainer:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.python
+    container_name: serpentlab-trainer
+    working_dir: /app
+    environment:
+      TRAINER_ENV_ADDR: "env-gateway:50051"
+    command: >
+      sh -c "python python/trainer/main.py"
+    depends_on:
+      - env-gateway
+    # volumes:
+    #   - models-data:/app/python/trainer/models
+
+# volumes:
+#   models-data:

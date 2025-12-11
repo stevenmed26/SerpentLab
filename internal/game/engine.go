@@ -1,6 +1,11 @@
 package game
 
 // Cell represents the contents of a grid cell.
+import (
+	"math/rand"
+	"time"
+)
+
 type Cell int8
 
 const (
@@ -48,6 +53,7 @@ type Game struct {
 	score      int
 	stepIndex  int
 	stepsSinceFood int
+	lastDeathCause string
 }
 
 // NewGame creates a new game with the given configuration.
@@ -63,6 +69,7 @@ func NewGame(cfg Config) *Game {
 		width:  cfg.Width,
 		height: cfg.Height,
 	}
+	rand.Seed(time.Now().UnixNano())
 	g.Reset()
 	return g
 }
@@ -82,6 +89,12 @@ func (g *Game) Reset() {
 	g.stepsSinceFood = 0
 }
 
+//abs helper
+func abs(x int) int {
+	if x < 0 { return -x}
+	return x
+}
+
 // Step advances the game by one tick using the provided action.
 //
 // Returns (reward, done).
@@ -89,6 +102,9 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	if !g.alive {
 		return 0.0, true
 	}
+
+	// Epsilon default per-step penalty
+	reward := -0.02
 
 	// Update direction - disallow direct reversal if you like.
 	if isValidTurn(g.dir, action) {
@@ -109,11 +125,25 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		next.X++
 	}
 
+	oldDist := abs(head.X - g.food.X) + abs(head.Y - g.food.Y)
+	newDist := abs(next.X - g.food.X) + abs(next.Y - g.food.Y)
+
+	if newDist < oldDist {
+		reward += 0.15 // moved closer
+	} else if newDist > oldDist {
+		reward -= 0.15 // moved farther
+	} else {
+		// Same distance, slightly bad
+		reward -= 0.02
+	}
+
 	// Check collisions with walls.
 	if g.cfg.WithWalls {
 		if next.X < 0 || next.X >= g.width || next.Y < 0 || next.Y >= g.height {
 			g.alive = false
-			return -1.0, true
+			g.lastDeathCause = "wall"
+			reward = -15.0
+			return reward, true
 		}
 	} else {
 		// Wrap-around mode if !WithWalls.
@@ -133,11 +163,11 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	for _, p := range g.snake {
 		if p == next {
 			g.alive = false
-			return -1.0, true
+			g.lastDeathCause = "self"
+			reward = -12.0
+			return reward, true
 		}
 	}
-
-	reward := 0.0
 
 	// Move snake: add new head.
 	g.snake = append([]Point{next}, g.snake...)
@@ -145,13 +175,31 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	// Check if we ate food.
 	if next == g.food {
 		g.score++
-		reward += 1.0
+
+		// Increasing food reward:
+		foodsEaten := g.score
+		foodReward := 6.0 + 0.5*float64(foodsEaten)
+		reward += foodReward
 		g.stepsSinceFood = 0
 		g.placeFood()
 	} else {
 		// No food: remove tail.
 		g.snake = g.snake[:len(g.snake)-1]
 		g.stepsSinceFood++
+
+		// --- Hunger penalty after grace period ---
+		const hungerGrace = 10 // free steps after food
+		const hungerScale = 0.02 // per-step penalty
+		const hungerMaxPenalty = 0.4 // cap
+
+		if g.stepsSinceFood > hungerGrace {
+			hunger := float64(g.stepsSinceFood - hungerGrace)
+			extra := hunger * hungerScale
+			if extra > hungerMaxPenalty {
+				extra = hungerMaxPenalty
+			}
+			reward -= extra
+		}
 	}
 
 	g.stepIndex++
@@ -159,7 +207,8 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	// Optional anti-stall condition.
 	if g.cfg.MaxStepsWithoutFood > 0 && g.stepsSinceFood >= g.cfg.MaxStepsWithoutFood {
 		g.alive = false
-		reward -= 0.5
+		g.lastDeathCause = "stall"
+		reward = -8.0
 		return reward, true
 	}
 
@@ -177,6 +226,9 @@ func (g *Game) Score() int { return g.score }
 
 // StepIndex returns the number of steps taken in this episode.
 func (g *Game) StepIndex() int { return g.stepIndex }
+
+// Getter function for death cause
+func (g *Game) DeathCause() string {return g.lastDeathCause}
 
 // Grid returns a flattened representation of the board as []int32, matching the proto.
 // 0 = empty, 1 = snake, 2 = food, 3 = wall.
@@ -229,9 +281,43 @@ func isValidTurn(oldDir, newDir Direction) bool {
 }
 
 func (g *Game) placeFood() {
-	// Naive placement: random empty cell.
-	// Placeholder; you’ll implement RNG + collision checks later.
-	g.food = Point{X: g.width / 4, Y: g.height / 4}
+	// Collect all possible empty cells
+	type cell struct{ X, Y int }
+	var candidates []cell
+
+	for y := 0; y < g.height; y++ {
+		for x := 0; x < g.height; x++ {
+
+			// Skip walls if enabled (outer border)
+			if g.cfg.WithWalls &&
+				(x == 0 || x == g.width-1 || y == 0 || y == g.height-1) {
+				continue
+			}
+
+			// Skip snake body
+			occupied := false
+			for _, seg := range g.snake {
+				if seg.X == x && seg.Y == y {
+					occupied = true
+					break
+				}
+			}
+			if occupied {
+				continue
+			}
+
+			candidates = append(candidates, cell{X: x, Y: y})
+		}
+	}
+
+	if len(candidates) == 0 {
+		// No free cells? Just keep existing food
+		return
+	}
+
+	// Pick candidate
+	c := candidates[rand.Intn(len(candidates))]
+	g.food = Point{X: c.X, Y: c.Y}
 }
 
 func index(x, y, width int) int {

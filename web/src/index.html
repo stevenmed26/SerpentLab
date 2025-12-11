@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>SerpentLab Viewer</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+    }
+
+    .status {
+      margin-bottom: 12px;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    canvas {
+      border: 1px solid #444;
+      background: #000;
+    }
+
+    .info {
+      margin-top: 12px;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>SerpentLab Live Viewer</h1>
+
+  <div>
+    <label for="mode">Control mode:</label>
+    <select id="mode">
+      <option value="random">Random</option>
+      <option value="policy">Trained Policy</option>
+    </select>
+    <button id="reset-btn">Reset</button>
+  </div>
+
+  <div class="status" id="status">Connecting...</div>
+  <canvas id="board" width="500" height="500"></canvas>
+  <div class="info" id="info">Score: 0</div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,22 @@
+# deployments/docker/Dockerfile.python
+
+FROM python:3.9-slim
+
+WORKDIR /app
+
+# System deps (optional but nice)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Python code and requirements
+COPY python/requirements.txt ./python/requirements.txt
+RUN pip install --no-cache-dir -r python/requirements.txt
+
+# Copy the whole repo (adjust if you want leaner)
+COPY . .
+
+WORKDIR /app
+
+# Default command overridden per-service in docker-compose
+CMD ["bash"]
