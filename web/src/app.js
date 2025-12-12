@@ -4,9 +4,30 @@
   /** @type {HTMLCanvasElement} */
   const canvas = document.getElementById("board");
   const ctx = canvas.getContext("2d");
+
   const modeSelect = document.getElementById("mode");
+  const pauseBtn = document.getElementById("pause-btn");
+  const resumeBtn = document.getElementById("resume-btn");
+  const resetBtn = document.getElementById("reset-btn");
+  const speedSlider = document.getElementById("speed");
+  const speedLabel = document.getElementById("speed-label");
 
   let currentWs = null;
+  let paused = false;
+
+  let lastRenderTime = 0;
+  let lastFrameSwitchTime = null;
+  let prevFrame = null;
+  let currentFrame = null;
+
+  // Control render smoothing
+  let renderInterval = 100;
+  speedLabel.textContent = `${renderInterval} ms`;
+
+  speedSlider.addEventListener("input", () => {
+    renderInterval = Number(speedSlider.value);
+    speedLabel.textContent = `${renderInterval} ms`;
+  });
 
   function connect() {
     if (currentWs) {
@@ -39,11 +60,24 @@
     };
 
     ws.onmessage = (event) => {
+      if (paused) return;
+
       const frame = JSON.parse(event.data);
-      renderFrame(frame);
+      prevFrame = currentFrame;
+      currentFrame = frame;
+      lastFrameSwitchTime = performance.now();
     };
   }
-  const resetBtn = document.getElementById("reset-btn");
+  pauseBtn.addEventListener("click", () => {
+    paused = true;
+    statusEl.textContent = "Paused";
+  });
+
+  resumeBtn.addEventListener("click", () => {
+    paused = false;
+    statusEl.textContent = "Running";
+  });
+
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
       console.log("Reset button clicked");
@@ -58,8 +92,40 @@
     });
   }
 
-  function renderFrame(frame) {
-    const { width, height, grid, score, tick, done } = frame;
+  modeSelect.addEventListener("change", () => {
+    connect();
+  })
+
+  document.addEventListener("keydown", (e) => {
+    if (modeSelect.value !== "manual") return;
+    if (!currentWs || currentWs.readyState !== WebSocket.OPEN) return;
+
+    let action = null;
+    switch (e.key) {
+      case "ArrowUp": action = 0; break;
+      case "ArrowRight": action = 1; break;
+      case "ArrowDown": action = 2; break;
+      case "ArrowLeft": action = 3; break;
+    }
+    if (action !== null) {
+      currentWs.send(JSON.stringify({ type: "manual_action", action }));
+    }
+  });
+
+  function renderFrameInterpolated(prev, curr, alpha) {
+    // If no previous frame
+    if (!prev) {
+      renderFrameBase(curr, null);
+      return;
+    }
+    renderFrameBase(curr, {prev, alpha });
+  }
+  function renderFrame(frame, interp) {
+    renderFrameBase(frame, interp);
+  }
+
+  function renderFrameBase(frame, interp) {
+    const { width, height, grid, score, tick, done, headX, headY } = frame;
 
     const cellW = canvas.width / width;
     const cellH = canvas.height / height;
@@ -73,10 +139,14 @@
         const val = grid[idx];
         if (val === 0) continue;
 
-        // 0 = empty, 1 = snake, 2 = food, 3 = wall
+        // 0 = empty, 1 = snake, 2 = food, 3 = wall, Don't color head
+        if (val === 1 && x === headX && y === headY) {
+          continue;
+        }
+
         switch (val) {
           case 1:
-            ctx.fillStyle = "#00ff66"; // snake
+            ctx.fillStyle = "#00aa44"; // snake
             break;
           case 2:
             ctx.fillStyle = "#ff3333"; // food
@@ -92,13 +162,47 @@
       }
     }
 
+    //Interpolated head
+    let drawHeadX = headX;
+    let drawHeadY = headY;
+
+    if (interp && interp.prev) {
+      const prev = interp.prev;
+      const alpha = interp.alpha;
+
+      const prevHeadX = prev.headX ?? headX;
+      const prevHeadY = prev.headY ?? headY;
+
+      drawHeadX = prevHeadX + (headX - prevHeadX) * alpha;
+      drawHeadY = prevHeadY + (headY - prevHeadY) * alpha
+    }
+
+    // Draw head overlay
+    ctx.fillStyle = "#00ff66" // Head
+    const headPx = drawHeadX * cellW;
+    const headPy = drawHeadY * cellH;
+    ctx.fillRect(headPx, headPy, cellW, cellH);
+
     infoEl.textContent = `Score: ${score} | Tick: ${tick} | ${done ? "Episode done (auto-reset)" : "Running"}`;
   }
+  function renderLoop(timestamp) {
+    if (!paused && currentFrame) {
+      if (timestamp - lastRenderTime >= renderInterval) {
+        let alpha = 1.0;
+        if (prevFrame) {
+          const dt = timestamp - lastFrameSwitchTime;
+          alpha = Math.max(0, Math.min(1, dt / renderInterval));
+        } else {
+          alpha = 1.0;
+        }
+        renderFrameInterpolated(prevFrame, currentFrame, alpha);
+        lastRenderTime = timestamp;
+      }
+    }
+    requestAnimationFrame(renderLoop);
+  }
+  requestAnimationFrame(renderLoop);
 
-  // Reconnect with new mode when user changes dropdown
-  modeSelect.addEventListener("change", () => {
-    connect();
-  });
 
   // Initial connect
   connect();

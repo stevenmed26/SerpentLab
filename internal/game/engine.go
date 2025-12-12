@@ -221,6 +221,14 @@ func (g *Game) Width() int { return g.width }
 // Height returns the board height.
 func (g *Game) Height() int { return g.height }
 
+// Head returns current head position
+func (g *Game) Head() Point {
+	if len(g.snake) == 0 {
+		return Point{X: 0, Y: 0}
+	}
+	return g.snake[0]
+}
+
 // Score returns the current score (e.g. apples eaten).
 func (g *Game) Score() int { return g.score }
 
@@ -233,30 +241,50 @@ func (g *Game) DeathCause() string {return g.lastDeathCause}
 // Grid returns a flattened representation of the board as []int32, matching the proto.
 // 0 = empty, 1 = snake, 2 = food, 3 = wall.
 func (g *Game) Grid() []int32 {
-	grid := make([]int32, g.width*g.height)
+	w = g.width
+	h = g. height
+	outW := w
+	outH := h
+	if g.cfg.WithWalls {
+		outW = w + 2
+		outH = h + 2
+	}
+
+	grid := make([]int32, outW*outH)
+
+	idx := func(x, y int) int { return y*outW + x }
 
 	// Walls
 	if g.cfg.WithWalls {
-		for x := 0; x < g.width; x++ {
-			grid[index(x, 0, g.width)] = int32(CellWall)
-			grid[index(x, g.height-1, g.width)] = int32(CellWall)
+		for x := 0; x < outW; x++ {
+			grid[idx(x, 0)] = int32(CellWall)
+			grid[idx(x, outH-1)] = int32(CellWall)
 		}
-		for y := 0; y < g.height; y++ {
-			grid[index(0, y, g.width)] = int32(CellWall)
-			grid[index(g.width-1, y, g.width)] = int32(CellWall)
+		for y := 0; y < OutH; y++ {
+			grid[idx(0, y)] = int32(CellWall)
+			grid[idx(OutW-1, y)] = int32(CellWall)
 		}
+	}
+
+	off := 0
+	if g.cfg.WithWalls {
+		off = 1
 	}
 
 	// Snake
 	for _, p := range g.snake {
-		if inBounds(p.X, p.Y, g.width, g.height) {
-			grid[index(p.X, p.Y, g.width)] = int32(CellSnake)
+		x := p.X + off
+		y := p.Y + off
+		if x >= 0 && x < outW && y >= 0 && y < outH {
+			grid[idx(x, y)] = int32(CellSnake)
 		}
 	}
 
 	// Food
-	if inBounds(g.food.X, g.food.Y, g.width, g.height) {
-		grid[index(g.food.X, g.food.Y, g.width)] = int32(CellFood)
+	fx := g.food.X + off
+	fy := g.food.Y + off
+	if fx >= 0 && fx < outW && fy >= 0 && fy < outH {
+		grid[idx(fx, fy)] = int32(CellFood)
 	}
 
 	return grid

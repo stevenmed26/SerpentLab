@@ -39,13 +39,20 @@
 <body>
   <h1>SerpentLab Live Viewer</h1>
 
-  <div>
+  <div id="controls" style="margin-bottom:10px;">
     <label for="mode">Control mode:</label>
     <select id="mode">
       <option value="random">Random</option>
       <option value="policy">Trained Policy</option>
+      <option value="manual">Manual</option>
     </select>
+    <button id="pause-btn">Pause</button>
     <button id="reset-btn">Reset</button>
+    <button id="resume-btn">Resume</button>
+    
+    <label for="speed">Speed:</label>
+    <input id="speed" type="range" min="50" max="500" value="100">
+    <span id="speed-label">100 ms</span>
   </div>
 
   <div class="status" id="status">Connecting...</div>

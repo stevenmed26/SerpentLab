@@ -24,6 +24,9 @@ type frame struct {
 	Grid   []int32 `json:"grid"`
 	Score  int     `json:"score"`
 	Done   bool    `json:"done"`
+
+	HeadX int      `json:"headX"`
+	HeadY int      `json:"headY"`
 }
 
 // Allow any origin for dev. Tighten this in production.
@@ -42,6 +45,16 @@ func policyServerURL() string {
 	}
 	return url
 }
+
+func (g *Game) RenderWidth() int {
+    if g.cfg.WithWalls { return g.width + 2 }
+    return g.width
+}
+func (g *Game) RenderHeight() int {
+    if g.cfg.WithWalls { return g.height + 2 }
+    return g.height
+}
+
 
 func getPolicyAction(grid []int32, width, height int) (game.Direction, error) {
 	reqBody := struct {
@@ -145,6 +158,7 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
 		// MaxStepsWithoutFood: 80, // Don't force ant-stall on trained model
     }
     g := game.NewGame(cfg)
+	lastDir := game.DirUp // Default direction
 
     ticker := time.NewTicker(100 * time.Millisecond) // ~10 FPS
     defer ticker.Stop()
@@ -152,6 +166,8 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
     tick := 0
 
     sendFrame := func(done bool) error {
+		head := g.Head()
+
         f := frame{
             Tick:   tick,
             Width:  g.Width(),
@@ -159,6 +175,8 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
             Grid:   g.Grid(),
             Score:  g.Score(),
             Done:   done,
+			HeadX: head.X + (func() int { if g.cfg.WithWalls { return 1 }; return 0}),
+			HeadY: head.Y + (func() int { if g.cfg.WithWalls { return 1 }; return 0}),
         }
         return conn.WriteJSON(f)
     }
@@ -170,6 +188,7 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
 
 	// --- Listen for reset message ---
 	resetCh := make(chan struct{}, 1)
+	manualActionCh := make(chan int, 1)
 
 	go func() {
 		for {
@@ -181,18 +200,18 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
 
 			var msg struct {
 				Type string `json:"type"`
+				Action int  `json:"action"`
 			}
 			if err := json.Unmarshal(data, &msg); err != nil {
 				log.Printf("invalid client message: %v", err)
 				continue
 			}
 
-			if msg.Type == "reset" {
-				// non-blocking send
-				select {
-				case resetCh <- struct{}{}:
-				default:
-				}
+			switch msg.Type {
+			case"reset":
+				select { case resetCh <- struct{}{}: default: }
+			case "manual_action":
+				select { case manualActionCh <- msg.Action: default: }	
 			}
 		}
 	}()
@@ -216,6 +235,15 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
         var actionDir game.Direction
 
         switch mode {
+		case "manual":
+			select {
+			case a := <-manualActionCh:
+				actionDir = game.Direction(a)
+				lastDir = actionDir
+			default:
+				// no input - move straight
+				actionDir = lastDir
+			}
         case "policy":
             grid := g.Grid()
             a, err := getPolicyAction(grid, g.Width(), g.Height())
