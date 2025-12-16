@@ -40,6 +40,8 @@ class TrainConfig:
     checkpoint_dir: str = "../models/checkpoints"
     checkpoint_interval: int = 1000  # episodes
 
+    resume_from: str = ""
+
 
 def linear_epsilon(config: TrainConfig, episode: int) -> float:
     if episode >= config.eps_decay_episodes:
@@ -48,7 +50,7 @@ def linear_epsilon(config: TrainConfig, episode: int) -> float:
     return config.eps_start + fraction * (config.eps_end - config.eps_start)
 
 
-def train(config: TrainConfig):
+def train(config: TrainConfig, stop_event=None, on_episode=None, set_status=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     env = SnakeRemoteEnv(
@@ -119,6 +121,9 @@ def train(config: TrainConfig):
     episode_rewards = []
 
     for episode in range(1, config.num_episodes + 1):
+        if stop_event is not None and stop_event.is_set():
+            break
+
         obs, info = env.reset()
         total_reward = 0.0
         foods_eaten = 0
@@ -127,6 +132,8 @@ def train(config: TrainConfig):
         eps = linear_epsilon(config, episode)
 
         for step in range(config.max_steps_per_episode):
+            if stop_event is not None and stop_event.is_set():
+                break
             action = select_action(obs, eps)
             next_obs, reward, done, info = env.step(action)
 
@@ -154,6 +161,20 @@ def train(config: TrainConfig):
                 break
 
         episode_rewards.append(total_reward)
+        avg_last_50 = float(np.mean(episode_rewards[-50:])) if len(episode_rewards) >= 50 else float(np.mean(episode_rewards))
+
+        if set_status:
+            set_status(episode=episode, last_reward=float(total_reward), avg_last_50=avg_last_50, foods=foods_eaten)
+
+        if on_episode:
+            on_episode({
+                "episode": episode,
+                "eps": float(eps),
+                "reward": float(total_reward),
+                "avg_last_50": avg_last_50,
+                "foods": foods_eaten,
+                "buffer": int(len(buffer)),
+            })
 
         # Update target net
         if episode % config.target_update_interval == 0:

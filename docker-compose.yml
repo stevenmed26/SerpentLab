@@ -9,6 +9,7 @@ services:
     environment:
       # Inside the Docker network, use service name "policy-server"
       POLICY_SERVER_URL: "http://policy-server:6000/act"
+      TRAINER_SERVICE_URL: "http://trainer-service:7000"
     ports:
       - "8080:8080"   # web UI
       - "50051:50051" # gRPC (optional to expose)
@@ -44,6 +45,22 @@ services:
       - env-gateway
     # volumes:
     #   - models-data:/app/python/trainer/models
+  #Webpage training service
+  trainer-service:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.python
+    container_name: serpentlab-trainer-service
+    working_dir: /app/python/trainer
+    environment:
+      TRAINER_ENV_ADDR: "env-gateway:50051"
+      TRAIN_SERVICE_PORT: "7000"
+    command: >
+      sh -c "python train_service.py"
+    ports:
+      - "7000:7000"
+    depends_on:
+      - env-gateway
 
 # volumes:
 #   models-data:

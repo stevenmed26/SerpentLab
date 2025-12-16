@@ -27,10 +27,10 @@ const (
 
 // Config holds configuration for a Snake game instance.
 type Config struct {
-	Width              int
-	Height             int
-	WithWalls          bool
-	MaxStepsWithoutFood int // optional anti-stalling; 0 disables
+	Width               int
+	Height              int
+	WithWalls           bool
+	MaxStepsWithoutFood int
 }
 
 // Point represents a coordinate on the board.
@@ -46,12 +46,12 @@ type Game struct {
 	width  int
 	height int
 
-	snake      []Point // head is snake[0]
-	dir        Direction
-	food       Point
-	alive      bool
-	score      int
-	stepIndex  int
+	snake          []Point // head is snake[0]
+	dir            Direction
+	food           Point
+	alive          bool
+	score          int
+	stepIndex      int
 	stepsSinceFood int
 	lastDeathCause string
 }
@@ -89,9 +89,11 @@ func (g *Game) Reset() {
 	g.stepsSinceFood = 0
 }
 
-//abs helper
+// abs helper
 func abs(x int) int {
-	if x < 0 { return -x}
+	if x < 0 {
+		return -x
+	}
 	return x
 }
 
@@ -125,8 +127,8 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		next.X++
 	}
 
-	oldDist := abs(head.X - g.food.X) + abs(head.Y - g.food.Y)
-	newDist := abs(next.X - g.food.X) + abs(next.Y - g.food.Y)
+	oldDist := abs(head.X-g.food.X) + abs(head.Y-g.food.Y)
+	newDist := abs(next.X-g.food.X) + abs(next.Y-g.food.Y)
 
 	if newDist < oldDist {
 		reward += 0.15 // moved closer
@@ -188,8 +190,8 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		g.stepsSinceFood++
 
 		// --- Hunger penalty after grace period ---
-		const hungerGrace = 10 // free steps after food
-		const hungerScale = 0.02 // per-step penalty
+		const hungerGrace = 10       // free steps after food
+		const hungerScale = 0.02     // per-step penalty
 		const hungerMaxPenalty = 0.4 // cap
 
 		if g.stepsSinceFood > hungerGrace {
@@ -236,42 +238,69 @@ func (g *Game) Score() int { return g.score }
 func (g *Game) StepIndex() int { return g.stepIndex }
 
 // Getter function for death cause
-func (g *Game) DeathCause() string {return g.lastDeathCause}
+func (g *Game) DeathCause() string { return g.lastDeathCause }
 
 // Grid returns a flattened representation of the board as []int32, matching the proto.
 // 0 = empty, 1 = snake, 2 = food, 3 = wall.
 func (g *Game) Grid() []int32 {
-	w = g.width
-	h = g. height
-	outW := w
-	outH := h
+	w := g.width
+	h := g.height
+
+	grid := make([]int32, w*h)
+	idx := func(x, y int) int { return y*w + x }
+
 	if g.cfg.WithWalls {
-		outW = w + 2
-		outH = h + 2
+		for x := 0; x < w; x++ {
+			grid[idx(x, 0)] = int32(CellWall)
+			grid[idx(x, h-1)] = int32(CellWall)
+		}
+		for y := 0; y < h; y++ {
+			grid[idx(0, y)] = int32(CellWall)
+			grid[idx(w-1, y)] = int32(CellWall)
+		}
+	}
+
+	// Snake
+	for _, p := range g.snake {
+		if p.X >= 0 && p.X < w && p.Y >= 0 && p.Y < h {
+			grid[idx(p.X, p.Y)] = int32(CellSnake)
+		}
+	}
+
+	// Food
+	if g.food.X >= 0 && g.food.X < w && g.food.Y >= 0 && g.food.Y < h {
+		grid[idx(g.food.X, g.food.Y)] = int32(CellFood)
+	}
+
+	return grid
+}
+
+func (g *Game) GridRender() ([]int32, int, int, int) {
+	w := g.width
+	h := g.height
+
+	outW, outH := w, h
+	off := 0
+	if g.cfg.WithWalls {
+		outW, outH = w+2, h+2
+		off = 1
 	}
 
 	grid := make([]int32, outW*outH)
-
 	idx := func(x, y int) int { return y*outW + x }
 
-	// Walls
 	if g.cfg.WithWalls {
 		for x := 0; x < outW; x++ {
 			grid[idx(x, 0)] = int32(CellWall)
 			grid[idx(x, outH-1)] = int32(CellWall)
 		}
-		for y := 0; y < OutH; y++ {
+		for y := 0; y < outH; y++ {
 			grid[idx(0, y)] = int32(CellWall)
-			grid[idx(OutW-1, y)] = int32(CellWall)
+			grid[idx(outW-1, y)] = int32(CellWall)
 		}
 	}
 
-	off := 0
-	if g.cfg.WithWalls {
-		off = 1
-	}
-
-	// Snake
+	// snake offset into render grid
 	for _, p := range g.snake {
 		x := p.X + off
 		y := p.Y + off
@@ -280,14 +309,14 @@ func (g *Game) Grid() []int32 {
 		}
 	}
 
-	// Food
+	// food offset into render grid
 	fx := g.food.X + off
 	fy := g.food.Y + off
 	if fx >= 0 && fx < outW && fy >= 0 && fy < outH {
 		grid[idx(fx, fy)] = int32(CellFood)
 	}
 
-	return grid
+	return grid, outW, outH, off
 }
 
 // --- helpers ---
@@ -346,12 +375,4 @@ func (g *Game) placeFood() {
 	// Pick candidate
 	c := candidates[rand.Intn(len(candidates))]
 	g.food = Point{X: c.X, Y: c.Y}
-}
-
-func index(x, y, width int) int {
-	return y*width + x
-}
-
-func inBounds(x, y, width, height int) bool {
-	return x >= 0 && x < width && y >= 0 && y < height
 }

@@ -2,64 +2,64 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="/styles.css" />
   <title>SerpentLab Viewer</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #111;
-      color: #eee;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 0;
-      padding: 20px;
-    }
-
-    h1 {
-      margin-bottom: 8px;
-    }
-
-    .status {
-      margin-bottom: 12px;
-      font-size: 0.9rem;
-      color: #ccc;
-    }
-
-    canvas {
-      border: 1px solid #444;
-      background: #000;
-    }
-
-    .info {
-      margin-top: 12px;
-      font-size: 0.9rem;
-    }
-  </style>
 </head>
 <body>
-  <h1>SerpentLab Live Viewer</h1>
+  <div class="container">
+    <header class="header">
+      <h1>SerpentLab Live Viewer</h1>
+      <button id="trainer-btn" class="btn btn-secondary">Trainer</button>
+    </header>
 
-  <div id="controls" style="margin-bottom:10px;">
-    <label for="mode">Control mode:</label>
-    <select id="mode">
-      <option value="random">Random</option>
-      <option value="policy">Trained Policy</option>
-      <option value="manual">Manual</option>
-    </select>
-    <button id="pause-btn">Pause</button>
-    <button id="reset-btn">Reset</button>
-    <button id="resume-btn">Resume</button>
-    
-    <label for="speed">Speed:</label>
-    <input id="speed" type="range" min="50" max="500" value="100">
-    <span id="speed-label">100 ms</span>
+    <section class="card board-card">
+      <h2>Board</h2>
+
+      <div class="board-center">
+        <!-- HUD on top of board -->
+        <div class="hud">
+          <div class="hud-left">
+            <span class="hud-label">Score</span>
+            <span id="info" class="hud-value">0</span>
+          </div>
+          <div class="hud-right">
+            <span id="status" class="pill">Running</span>
+          </div>
+        </div>
+
+        <div class="board-wrap">
+          <canvas id="board" width="500" height="500"></canvas>
+        </div>
+
+        <!-- Buttons directly under board -->
+        <div class="btn-row board-buttons">
+          <button id="play-pause-btn" class="btn btn-secondary">Pause</button>
+          <button id="reset-btn" class="btn btn-danger">Reset</button>
+        </div>
+
+        <!-- Mode + speed under buttons -->
+        <div class="under-controls">
+          <label for="mode">Control mode
+            <select id="mode">
+              <option value="random">Random</option>
+              <option value="policy">Trained Policy</option>
+              <option value="manual">Manual</option>
+            </select>
+          </label>
+
+          <label for="speed">Speed
+            <div class="speed-row">
+              <input id="speed" type="range" min="50" max="500" value="100">
+              <span id="speed-label" class="muted">100 ms</span>
+            </div>
+          </label>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <div class="status" id="status">Connecting...</div>
-  <canvas id="board" width="500" height="500"></canvas>
-  <div class="info" id="info">Score: 0</div>
-
-  <script src="app.js"></script>
+  <script src="/app.js"></script>
 </body>
 
 </html>

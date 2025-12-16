@@ -1,16 +1,28 @@
 (function () {
+
+  const trainerBtn = document.getElementById("trainer-btn");
+
+  if (trainerBtn) {
+    trainerBtn.addEventListener("click", () => {
+      console.log("Navigating to trainer page");
+      window.location.assign("/train");
+    });
+  }
+  const canvas = document.getElementById("board");
+  if (!canvas) return;
+
   const statusEl = document.getElementById("status");
   const infoEl = document.getElementById("info");
   /** @type {HTMLCanvasElement} */
-  const canvas = document.getElementById("board");
+  
   const ctx = canvas.getContext("2d");
 
   const modeSelect = document.getElementById("mode");
-  const pauseBtn = document.getElementById("pause-btn");
-  const resumeBtn = document.getElementById("resume-btn");
+  const playPauseBtn = document.getElementById("play-pause-btn");
   const resetBtn = document.getElementById("reset-btn");
   const speedSlider = document.getElementById("speed");
   const speedLabel = document.getElementById("speed-label");
+  
 
   let currentWs = null;
   let paused = false;
@@ -60,23 +72,26 @@
     };
 
     ws.onmessage = (event) => {
-      if (paused) return;
-
       const frame = JSON.parse(event.data);
       prevFrame = currentFrame;
       currentFrame = frame;
       lastFrameSwitchTime = performance.now();
     };
   }
-  pauseBtn.addEventListener("click", () => {
-    paused = true;
-    statusEl.textContent = "Paused";
-  });
+  if (playPauseBtn) {
+    playPauseBtn.addEventListener("click", () => {
+      paused = !paused;
+      playPauseBtn.textContent = paused ? "Play" : "Pause";
+      statusEl.textContent = paused ? "Paused" : "Running";
+      playPauseBtn.classList.toggle("btn-success", paused);
+      playPauseBtn.classList.toggle("btn-secondary", !paused);
 
-  resumeBtn.addEventListener("click", () => {
-    paused = false;
-    statusEl.textContent = "Running";
-  });
+      // Tell the server
+      if (currentWs && currentWs.readyState === WebSocket.OPEN) {
+        currentWs.send(JSON.stringify({ type: paused ? "pause" : "resume" }));
+      }
+    });
+  }
 
   if (resetBtn) {
     resetBtn.addEventListener("click", () => {
@@ -183,7 +198,8 @@
     const headPy = drawHeadY * cellH;
     ctx.fillRect(headPx, headPy, cellW, cellH);
 
-    infoEl.textContent = `Score: ${score} | Tick: ${tick} | ${done ? "Episode done (auto-reset)" : "Running"}`;
+    infoEl.textContent = String(score);
+    statusEl.textContent = paused ? "Paused" : "Running";
   }
   function renderLoop(timestamp) {
     if (!paused && currentFrame) {

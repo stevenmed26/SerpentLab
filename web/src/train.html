@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="/styles.css" />
+    <title>SerpentLab Training</title>
+</head>
+<body>
+  <div class="container">
+    <header class="header">
+      <h1>Training</h1>
+      <button id="viewer-btn" class="btn btn-secondary">Viewer</button>
+    </header>
+
+    <section class="card">
+      <h2>Run settings</h2>
+
+      <div class="form-grid">
+        <label>Width <input id="width" type="number" value="10"></label>
+        <label>Height <input id="height" type="number" value="10"></label>
+        <label>Episodes <input id="episodes" type="number" value="10000"></label>
+        <label>Batch <input id="batch" type="number" value="64"></label>
+        <label>Buffer <input id="buffer" type="number" value="100000"></label>
+        <label>Eps end <input id="epsEnd" type="number" step="0.01" value="0.10"></label>
+        <label>Eps decay <input id="epsDecay" type="number" value="2500"></label>
+        <label>Checkpoint interval <input id="ckpt" type="number" value="1000"></label>
+      </div>
+
+      <div class="btn-row">
+        <button id="train-toggle" class="btn">Start</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Status</h2>
+      <pre id="status" class="pre-box"></pre>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <h2>Training Log</h2>
+        <button id="clear-log" class="btn btn-secondary btn-sm" type="button">Clear</button>
+      </div>
+      <div class="log-box">
+        <pre id="log"></pre>
+      </div>
+    </section>
+  </div>
+
+  <script src="/train.js"></script>
+</body>
+
+</html>
