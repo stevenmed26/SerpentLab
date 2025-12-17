@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from train_loop import TrainConfig, train
+from python.trainer.DQN.train_loop import TrainConfig, train
 
 
 def main():

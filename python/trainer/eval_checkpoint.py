@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 
-from train_loop import TrainConfig, SnakeDQN, SnakeRemoteEnv  # adjust imports if paths differ
+from python.trainer.DQN.train_loop import TrainConfig, SnakeDQN, SnakeRemoteEnv  # adjust imports if paths differ
 
 
 def eval_checkpoint(

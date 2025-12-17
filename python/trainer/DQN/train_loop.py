@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from torch import optim
 
 from gym_env import SnakeRemoteEnv
-from model import SnakeDQN
-from replay_buffer import ReplayBuffer, Transition
+from python.trainer.DQN.model import SnakeDQN
+from python.trainer.DQN.replay_buffer import ReplayBuffer, Transition
 from collections import deque
 
 

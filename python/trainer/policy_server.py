@@ -12,7 +12,7 @@ import torch
 from flask import Flask, request, jsonify
 import logging
 
-from model import SnakeDQN  # adjust import if needed
+from python.trainer.DQN.model import SnakeDQN  # adjust import if needed
 
 app = Flask(__name__)
 

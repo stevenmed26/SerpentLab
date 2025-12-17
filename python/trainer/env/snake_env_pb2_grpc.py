@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-import snake_env_pb2 as snake__env__pb2
+import python.trainer.env.snake_env_pb2 as snake__env__pb2
 
 GRPC_GENERATED_VERSION = '1.76.0'
 GRPC_VERSION = grpc.__version__
