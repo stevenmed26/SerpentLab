@@ -131,12 +131,12 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	newDist := abs(next.X-g.food.X) + abs(next.Y-g.food.Y)
 
 	if newDist < oldDist {
-		reward += 0.15 // moved closer
+		reward += 0.03 // moved closer
 	} else if newDist > oldDist {
-		reward -= 0.15 // moved farther
+		reward -= 0.03 // moved farther
 	} else {
 		// Same distance, slightly bad
-		reward -= 0.02
+		reward -= 0.005
 	}
 
 	// Check collisions with walls.
@@ -144,7 +144,7 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		if next.X < 0 || next.X >= g.width || next.Y < 0 || next.Y >= g.height {
 			g.alive = false
 			g.lastDeathCause = "wall"
-			reward = -15.0
+			reward = -8.0
 			return reward, true
 		}
 	} else {
@@ -166,7 +166,7 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		if p == next {
 			g.alive = false
 			g.lastDeathCause = "self"
-			reward = -12.0
+			reward = -8.0
 			return reward, true
 		}
 	}

@@ -7,6 +7,7 @@ from train_loop import TrainConfig, train
 
 def main():
     cfg = TrainConfig()
+    print("Beginning training with config:", cfg)
     train(cfg)
 
 

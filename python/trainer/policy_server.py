@@ -23,6 +23,18 @@ HEIGHT: Optional[int] = None
 WIDTH: Optional[int] = None
 
 
+def one_hot_obs(obs: np.ndarray, num_channels: int = 4) -> np.ndarray:
+    """
+    obs: (H, W) with values in {0,1,2,3}
+    returns: (C, H, W)
+    """
+    h, w = obs.shape
+    out = np.zeros((num_channels, h, w), dtype=np.float32)
+    for c in range(num_channels):
+        out[c] = (obs == c)
+    return out
+
+
 def load_checkpoint(path: str):
     global policy_net, HEIGHT, WIDTH
 
@@ -93,8 +105,11 @@ def act():
 
     arr = arr.reshape((height, width))
 
+    # One-hot encode: (C, H, W)
+    state_oh = one_hot_obs(arr, num_channels=4)
+
     # Convert to tensor: (1, 1, H, W)
-    state_t = torch.from_numpy(arr.astype(np.float32)).unsqueeze(0).unsqueeze(0).to(device)
+    state_t = torch.from_numpy(state_oh).unsqueeze(0).to(device)
 
     with torch.no_grad():
         q_values = policy_net(state_t)
