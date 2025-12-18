@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import os
 from typing import Any, Dict, Optional
 
@@ -12,9 +11,10 @@ import torch
 from flask import Flask, request, jsonify
 import logging
 
-from python.trainer.DQN.model import SnakeDQN  # adjust import if needed
+from trainer.DQN.model import SnakeDQN
+from trainer.common.obs import one_hot_obs
 
-app = Flask(__name__)
+app = Flask(__name__) 
 
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -23,20 +23,9 @@ HEIGHT: Optional[int] = None
 WIDTH: Optional[int] = None
 
 
-def one_hot_obs(obs: np.ndarray, num_channels: int = 4) -> np.ndarray:
-    """
-    obs: (H, W) with values in {0,1,2,3}
-    returns: (C, H, W)
-    """
-    h, w = obs.shape
-    out = np.zeros((num_channels, h, w), dtype=np.float32)
-    for c in range(num_channels):
-        out[c] = (obs == c)
-    return out
-
-
-def load_checkpoint(path: str):
+def load_checkpoint(path: str, algo: str):
     global policy_net, HEIGHT, WIDTH
+    ALGO = algo.lower()
 
     print(f"Loading checkpoint from {path}")
     checkpoint = torch.load(path, map_location=device)
@@ -53,11 +42,20 @@ def load_checkpoint(path: str):
     HEIGHT = int(height)
     WIDTH = int(width)
 
-    policy_net = SnakeDQN(height=height, width=width, num_actions=4).to(device)
-    policy_net.load_state_dict(checkpoint["model_state_dict"])
-    policy_net.eval()
-
-    print(f"Loaded model with height={height}, width={width}")
+    if ALGO == "dqn":
+        net = SnakeDQN(HEIGHT, WIDTH, num_actions=4).to(device)
+        net.load_state_dict(checkpoint["model_state_dict"])
+        net.eval()
+        policy_net = net
+        print(f"Loaded DQN model with height={HEIGHT}, width={WIDTH}")
+        return
+    if ALGO == "ppo":
+        # Placeholder for when you implement PPO
+        # from trainer.PPO.model import SnakeActorCritic
+        # net = SnakeActorCritic(...)
+        # net.load_state_dict(checkpoint["model_state_dict"])
+        raise NotImplementedError("PPO policy loading not implemented yet")
+    raise ValueError(f"Unknown algorithm: {algo}")
 
 
 @app.route("/act", methods=["POST"])
@@ -74,7 +72,7 @@ def act():
       "action": 0   // int in {0,1,2,3}
     }
     """
-    global policy_net, HEIGHT, WIDTH
+    global policy_net, HEIGHT, WIDTH, ALGO
 
     if policy_net is None:
         return jsonify({"error": "model not loaded"}), 500
@@ -105,21 +103,25 @@ def act():
 
     arr = arr.reshape((height, width))
 
-    # One-hot encode: (C, H, W)
-    state_oh = one_hot_obs(arr, num_channels=4)
+    if ALGO == "dqn":
+        state_oh = one_hot_obs(arr, num_channels=4)                 # (C,H,W)
+        state_t = torch.from_numpy(state_oh).unsqueeze(0).to(device)  # (1,C,H,W)
 
-    # Convert to tensor: (1, 1, H, W)
-    state_t = torch.from_numpy(state_oh).unsqueeze(0).to(device)
+        with torch.no_grad():
+            q_values = policy_net(state_t)
+            action = int(q_values.argmax(dim=1).item())
+        return jsonify({"action": action})
 
-    with torch.no_grad():
-        q_values = policy_net(state_t)
-        action = int(q_values.argmax(dim=1).item())
+    if ALGO == "ppo":
+        # Later: sample from action distribution
+        return jsonify({"error": "ppo not implemented"}), 500
 
-    return jsonify({"action": action})
+    return jsonify({"error": "unknown algo"}), 500
 
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--algo", choices=["dqn", "ppo"], required=True)
     parser.add_argument(
         "--checkpoint",
         type=str,
