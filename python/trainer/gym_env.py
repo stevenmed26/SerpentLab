@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any
 
 import numpy as np
 
-from env_client import SnakeEnvClient
+from trainer.env_client import SnakeEnvClient
 
 
 class SnakeRemoteEnv:

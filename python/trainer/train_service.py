@@ -9,7 +9,7 @@ from dataclasses import asdict
 
 from flask import Flask, request, jsonify, Response
 
-from python.trainer.DQN.train_loop import TrainConfig, train
+from trainer.DQN.train_loop import DQNConfig, train
 
 app = Flask(__name__)
 
@@ -52,7 +52,7 @@ def get_status():
         return dict(_status)
     
 
-def train_runner(cfg: TrainConfig):
+def train_runner(cfg: DQNConfig):
     set_status(running=True, message="training started")
     _stop_flag.clear()
 
@@ -73,7 +73,7 @@ def start():
     
     data = request.get_json(force=True, silent=True) or {}
 
-    cfg = TrainConfig(
+    cfg = DQNConfig(
         address=data.get("address", os.getenv("TRAINER_ENV_ADDR", "env-gateway: 50051")),
         width=int(data.get("width", 10)),
         height=int(data.get("height", 10)),

@@ -20,12 +20,16 @@ class BaseTrainer:
 class PPOTrainer:
     def __init__(self, *, config: Any, device: str, seed: int, run_id: str):
         self.config = config
-        self.device_str = device
         self.seed = seed
         self.run_id = run_id
 
-        self.device = torch.device(device)
+        self.device = device
         self.model: Optional[SnakeActorCritic] = None
+
+        if isinstance(config, dict):
+            self.train_cfg = PPOConfig(**config)
+        else:
+            self.train_cfg = config
 
     def build_model(self, height: int, width: int, num_actions: int = 4):
         self.model = SnakeActorCritic(height=height, width=width, num_actions=num_actions).to(self.device)

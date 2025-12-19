@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 
-from python.trainer.DQN.train_loop import TrainConfig, SnakeDQN, SnakeRemoteEnv  # adjust imports if paths differ
+from trainer.DQN.train_loop import DQNConfig, SnakeDQN, SnakeRemoteEnv  # adjust imports if paths differ
 
 
 def eval_checkpoint(
@@ -21,7 +21,7 @@ def eval_checkpoint(
     print(f"Checkpoint width={width}, height={height}")
 
     # Build env config
-    cfg = TrainConfig(width=width, height=height, with_walls=True)
+    cfg = DQNConfig(width=width, height=height, with_walls=True)
     env = SnakeRemoteEnv(
         address=cfg.address,
         width=cfg.width,

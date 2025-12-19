@@ -5,8 +5,8 @@ from dataclasses import asdict
 import os
 import torch
 
-from trainer.DQN.train_loop import TrainConfig, train
-from trainer.common.checkpoint import save_checkpoint, load_checkpoint
+from trainer.DQN.train_loop import DQNConfig, train
+# from trainer.common.checkpoint import save_checkpoint, load_checkpoint
 
 class BaseTrainer:
     def train(self): ...
@@ -21,7 +21,7 @@ class DQNTrainer:
         self.seed = seed
 
         if isinstance(config, dict):
-            self.train_cfg = TrainConfig(**config)
+            self.train_cfg = DQNConfig(**config)
         else:
             self.train_cfg = config
 

@@ -10,9 +10,9 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 
-from gym_env import SnakeRemoteEnv
-from python.trainer.DQN.model import SnakeDQN
-from python.trainer.DQN.replay_buffer import ReplayBuffer, Transition
+from trainer.gym_env import SnakeRemoteEnv
+from trainer.DQN.model import SnakeDQN
+from trainer.DQN.replay_buffer import ReplayBuffer, Transition
 from trainer.common.obs import one_hot_obs
 from collections import deque
 
@@ -21,7 +21,7 @@ from typing import Optional
 
 
 @dataclass
-class TrainConfig:
+class DQNConfig:
     address: str = os.getenv("TRAINER_ENV_ADDR", "localhost:50051")
     width: int = 10
     height: int = 10
@@ -55,20 +55,30 @@ class TrainConfig:
     resume_from: str = ""
 
 
-def linear_epsilon(config: TrainConfig, episode: int) -> float:
+def linear_epsilon(config: DQNConfig, episode: int) -> float:
     if episode >= config.eps_decay_episodes:
         return config.eps_end
     fraction = episode / config.eps_decay_episodes
     return config.eps_start + fraction * (config.eps_end - config.eps_start)
 
 
-def train(config: TrainConfig, stop_event=None, on_episode=None, set_status=None, device: Optional[torch.device] = None, seed: int = 0):
-    if device is None:
+def train(config: DQNConfig, stop_event=None, on_episode=None, set_status=None, device: Optional[torch.device] = None, seed: int = 0):
+    if device is None or device == "auto":
         device_t = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    elif device == "cuda":
+        if not torch.cuda.is_available():
+            print("WARNING: CUDA requested but not available. Falling back to CPU.")
+            device_t = torch.device("cpu")
+        else:
+            device_t = torch.device("cuda")
+    elif device == "cpu":
+        device_t = torch.device("cpu")
     else:
-        device_t = torch.device(device)
+        raise ValueError(f"Unknown device: {device}")
 
-    print("device:", device_t, "cuda_available:", torch.cuda.is_available())
+
+    print(f"[device] requested={device} resolved={device_t} cuda_available={torch.cuda.is_available()}")
+
     
     random.seed(seed)
     np.random.seed(seed)
@@ -76,7 +86,7 @@ def train(config: TrainConfig, stop_event=None, on_episode=None, set_status=None
     if device_t.type == "cuda":
         torch.cuda.manual_seed_all(seed)
 
-    scaler = torch.amp.GradScaler("cuda" if torch.cuda.is_available() else "cpu")
+    scaler = torch.amp.GradScaler(enabled=(device_t.type == "cuda"))
 
     env = SnakeRemoteEnv(
         address=config.address,
@@ -90,8 +100,8 @@ def train(config: TrainConfig, stop_event=None, on_episode=None, set_status=None
     height, width = obs.shape
     num_actions = 4
 
-    policy_net = SnakeDQN(height, width, num_actions=num_actions).to(device)
-    target_net = SnakeDQN(height, width, num_actions=num_actions).to(device)
+    policy_net = SnakeDQN(height, width, num_actions=num_actions).to(device_t)
+    target_net = SnakeDQN(height, width, num_actions=num_actions).to(device_t)
     target_net.load_state_dict(policy_net.state_dict())
     target_net.eval()
 
@@ -181,7 +191,7 @@ def train(config: TrainConfig, stop_event=None, on_episode=None, set_status=None
             return np.random.randint(num_actions)
 
         state_oh = one_hot_obs(state)  # (C,H,W)
-        state_t = torch.from_numpy(state_oh).float().unsqueeze(0).to(device)
+        state_t = torch.from_numpy(state_oh).float().unsqueeze(0).to(device_t)
         with torch.no_grad():
             q_values = policy_net(state_t)
         return int(q_values.argmax(dim=1).item())
@@ -196,14 +206,14 @@ def train(config: TrainConfig, stop_event=None, on_episode=None, set_status=None
         states_oh = np.stack([one_hot_obs(s) for s in states], axis=0)         # (B,C,H,W)
         next_states_oh = np.stack([one_hot_obs(s) for s in next_states], axis=0)
 
-        states_t = torch.from_numpy(states_oh).float().to(device)       # (B,C,H,W)
-        next_states_t = torch.from_numpy(next_states_oh).float().to(device)
+        states_t = torch.from_numpy(states_oh).float().to(device_t)       # (B,C,H,W)
+        next_states_t = torch.from_numpy(next_states_oh).float().to(device_t)
 
-        actions_t = torch.from_numpy(actions).long().unsqueeze(1).to(device)      # (B,1)
-        rewards_t = torch.from_numpy(rewards).float().to(device)                  # (B,)
-        dones_t = torch.from_numpy(dones).float().to(device)                      # (B,)
-        gammas_t = torch.from_numpy(gammas).float().to(device)                  # (B,)
-        weights_t = torch.from_numpy(weights).float().to(device)                # (B,)
+        actions_t = torch.from_numpy(actions).long().unsqueeze(1).to(device_t)      # (B,1)
+        rewards_t = torch.from_numpy(rewards).float().to(device_t)                  # (B,)
+        dones_t = torch.from_numpy(dones).float().to(device_t)                      # (B,)
+        gammas_t = torch.from_numpy(gammas).float().to(device_t)                  # (B,)
+        weights_t = torch.from_numpy(weights).float().to(device_t)                # (B,)
 
         # Q(s,a)
         q_values = policy_net(states_t).gather(1, actions_t).squeeze(1)

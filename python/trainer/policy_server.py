@@ -8,10 +8,12 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
+from torch.distributions import Categorical
 from flask import Flask, request, jsonify
 import logging
 
 from trainer.DQN.model import SnakeDQN
+from trainer.PPO.model import SnakeActorCritic
 from trainer.common.obs import one_hot_obs
 
 app = Flask(__name__) 
@@ -50,11 +52,13 @@ def load_checkpoint(path: str, algo: str):
         print(f"Loaded DQN model with height={HEIGHT}, width={WIDTH}")
         return
     if ALGO == "ppo":
-        # Placeholder for when you implement PPO
-        # from trainer.PPO.model import SnakeActorCritic
-        # net = SnakeActorCritic(...)
-        # net.load_state_dict(checkpoint["model_state_dict"])
-        raise NotImplementedError("PPO policy loading not implemented yet")
+        net = SnakeActorCritic(HEIGHT, WIDTH, num_actions=4, in_channels=4).to(device)
+        net.load_state_dict(checkpoint["model_state_dict"])
+        net.eval()
+        policy_net = net
+        print(f"Loaded PPO model with height={HEIGHT}, width={WIDTH}")
+        return
+        
     raise ValueError(f"Unknown algorithm: {algo}")
 
 
@@ -113,9 +117,15 @@ def act():
         return jsonify({"action": action})
 
     if ALGO == "ppo":
-        # Later: sample from action distribution
-        return jsonify({"error": "ppo not implemented"}), 500
+        state_oh = one_hot_obs(arr, num_channels=4)
+        state_t = torch.from_numpy(state_oh).unsqueeze(0).float().to(device)
 
+        with torch.no_grad():
+            logits, _value = policy_net(state_t)
+            action = int(torch.argmax(logits, dim=1).item())
+
+        return jsonify({"action": action})
+    
     return jsonify({"error": "unknown algo"}), 500
 
 

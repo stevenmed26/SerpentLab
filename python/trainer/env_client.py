@@ -3,8 +3,8 @@
 import grpc
 import numpy as np
 
-import python.trainer.env.snake_env_pb2 as pb
-import python.trainer.env.snake_env_pb2_grpc as pb_grpc
+import trainer.env.snake_env_pb2 as pb
+import trainer.env.snake_env_pb2_grpc as pb_grpc
 
 from typing import Optional
 

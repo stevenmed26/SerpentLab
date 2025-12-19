@@ -24,7 +24,7 @@ class SnakeActorCritic(nn.Module):
         self.in_channels = in_channels
 
         # Simple CNN trunk
-        self.conv == nn.Sequential(
+        self.conv = nn.Sequential(
             nn.Conv2d(in_channels, 32, kernel_size=3, stride=1, padding=1),
             nn.ReLU(),
             nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1),

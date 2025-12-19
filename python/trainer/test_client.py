@@ -1,6 +1,6 @@
 # python/trainer/test_client.py
 
-from gym_env import SnakeRemoteEnv  # or from .gym_env import SnakeRemoteEnv
+from trainer.gym_env import SnakeRemoteEnv  # or from .gym_env import SnakeRemoteEnv
 import numpy as np
 
 def main():

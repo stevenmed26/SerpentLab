@@ -8,41 +8,60 @@ services:
     container_name: serpentlab-env-gateway
     environment:
       # Inside the Docker network, use service name "policy-server"
-      POLICY_SERVER_URL: "http://policy-server:6000/act"
+      POLICY_SERVER_URL_DQN: "http://policy-server-dqn:6000/act"
+      POLICY_SERVER_URL_PPO: "http://policy-server-ppo:6000/act"
       TRAINER_SERVICE_URL: "http://trainer-service:7000"
     ports:
       - "8080:8080"   # web UI
       - "50051:50051" # gRPC (optional to expose)
     depends_on:
-      - policy-server
+      - policy-server-dqn
+      - policy-server-ppo
     # volumes: # if you want live-reload of web assets during dev, you can add:
     #   - ./web:/app/web:ro
 
-  policy-server:
+  policy-server-dqn:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.python
-    container_name: serpentlab-policy-server
-    working_dir: /app/python/trainer
+    container_name: serpentlab-policy-server-dqn
+    working_dir: /app/python/
     environment:
-      CHECKPOINT_PATH: "/app/python/models/checkpoints/snake_dqn_ep10000.pt"
+      CHECKPOINT_PATH: "/app/python/models/dqn/checkpoints/snake_dqn_ep10000.pt"
+      PYTHONPATH: "/app/python"
     command: >
-      sh -c "python policy_server.py --checkpoint $${CHECKPOINT_PATH}"
-    # If you want shared models with trainer container, see "volumes" in trainer service.
+      sh -c "python -m trainer.policy_server --algo dqn --checkpoint $${CHECKPOINT_PATH}"
+    
+  policy-server-ppo:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.python
+    container_name: serpentlab-policy-server-ppo
+    working_dir: /app/python/
+    environment:
+      CHECKPOINT_PATH: "/app/python/models/ppo/checkpoints/snake_ppo_update50.pt"
+      PYTHONPATH: "/app/python"
+    command: >
+      sh -c "python -m trainer.policy_server --algo ppo --checkpoint $${CHECKPOINT_PATH}"
 
-  # Optional: trainer container (you can enable when you want training)
   trainer:
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.python
     container_name: serpentlab-trainer
-    working_dir: /app
+    working_dir: /app/python
+    gpus: all
     environment:
       TRAINER_ENV_ADDR: "env-gateway:50051"
+      PYTHONPATH: "/app/python"
+      TRAIN_ALGO: "dqn"
+      NVIDIA_VISIBLE_DEVICES: "all"
+      NVIDIA_DRIVER_CAPABILITIES: "compute,utility"
     command: >
-      sh -c "python python/trainer/main.py"
+      sh -c "python -m trainer.main --algo $${TRAIN_ALGO} --device auto"
     depends_on:
       - env-gateway
+      
     # volumes:
     #   - models-data:/app/python/trainer/models
   #Webpage training service
@@ -51,12 +70,12 @@ services:
       context: .
       dockerfile: deployments/docker/Dockerfile.python
     container_name: serpentlab-trainer-service
-    working_dir: /app/python/trainer
+    working_dir: /app/python/
     environment:
       TRAINER_ENV_ADDR: "env-gateway:50051"
       TRAIN_SERVICE_PORT: "7000"
     command: >
-      sh -c "python train_service.py"
+      sh -c "python -m trainer.train_service"
     ports:
       - "7000:7000"
     depends_on:

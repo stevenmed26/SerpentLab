@@ -31,7 +31,7 @@ func registerViewerRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/ws/game", handleWSGame)
 }
 
-func getPolicyAction(grid []int32, width, height int) (game.Direction, error) {
+func getPolicyAction(mode string, grid []int32, width, height int) (game.Direction, error) {
 	reqBody := struct {
 		Grid   []int32 `json:"grid"`
 		Width  int     `json:"width"`
@@ -47,7 +47,7 @@ func getPolicyAction(grid []int32, width, height int) (game.Direction, error) {
 		return 0, err
 	}
 
-	resp, err := httpClient.Post(policyServerURL(), "application/json", bytes.NewReader(data))
+	resp, err := httpClient.Post(policyServerURL(mode), "application/json", bytes.NewReader(data))
 	if err != nil {
 		return 0, err
 	}
@@ -81,12 +81,20 @@ func getPolicyAction(grid []int32, width, height int) (game.Direction, error) {
 	}
 }
 
-func policyServerURL() string {
-	url := os.Getenv("POLICY_SERVER_URL")
-	if url == "" {
-		url = "http://localhost:6000/act"
+func policyServerURL(mode string) string {
+	var baseURL string
+	switch mode {
+	case "dqn":
+		baseURL = os.Getenv("POLICY_SERVER_URL_DQN")
+		return baseURL
+	case "ppo":
+		baseURL = os.Getenv("POLICY_SERVER_URL_PPO")
+		return baseURL
+	default:
+		log.Printf("unsupported policy mode: %s - falling back to DQN", mode)
+		baseURL = os.Getenv("POLICY_SERVER_URL_DQN")
+		return baseURL
 	}
-	return url
 }
 
 func handleWSGame(w http.ResponseWriter, r *http.Request) {
@@ -222,12 +230,12 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
 				// no input - move straight
 				actionDir = lastDir
 			}
-		case "policy":
+		case "dqn", "ppo":
 			obs := g.Grid()
 
-			a, err := getPolicyAction(obs, g.Width(), g.Height())
+			a, err := getPolicyAction(mode, obs, g.Width(), g.Height()) // Refine to DQN only
 			if err != nil {
-				log.Printf("policy error, falling back to random: %v", err)
+				log.Printf("%s policy error, falling back to random: %v", mode, err)
 				actionDir = game.Direction(rand.Intn(4))
 			} else {
 				actionDir = a

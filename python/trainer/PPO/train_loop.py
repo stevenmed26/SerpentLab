@@ -29,7 +29,7 @@ class PPOConfig:
 
     # Training
     total_timesteps: int = 2_000_000
-    n_steps: int = 1024
+    n_steps: int = 256
     batch_size: int = 256
     n_epochs: int = 4
 
@@ -44,8 +44,8 @@ class PPOConfig:
 
     # Logging / checkpoints
     log_interval_episodes: int = 50
-    checkpoint_dir: str = "../models/PPO/checkpoints"
-    checkpoint_interval_updates: int = 50
+    checkpoint_dir: str = "../python/models/PPO/checkpoints"
+    checkpoint_interval_updates: int = 500
     resume_from: str = ""
 
 
@@ -58,10 +58,22 @@ def train_ppo(
     seed: int = 42,
 ):
     # ----- device and seeds -----
-    if device is None:
+    if device is None or device == "auto":
         device_t = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    elif device == "cuda":
+        if not torch.cuda.is_available():
+            print("WARNING: CUDA requested but not available. Falling back to CPU.")
+            device_t = torch.device("cpu")
+        else:
+            device_t = torch.device("cuda")
+    elif device == "cpu":
+        device_t = torch.device("cpu")
     else:
-        device_t = torch.device(device)
+        raise ValueError(f"Unknown device: {device}")
+    
+    print(f"[device] requested={device} resolved={device_t} cuda_available={torch.cuda.is_available()}")
+
+
 
     random.seed(seed)
     np.random.seed(seed)
@@ -206,6 +218,9 @@ def train_ppo(
         total_steps += 1
         obs = next_obs
 
+        if not buf.full:
+            continue
+
         if done:
             finish_episode()
             obs, info = env.reset()
@@ -230,7 +245,7 @@ def train_ppo(
 
         # normalize advantages
         adv_mean = advantages.mean()
-        adv_std = advantages.std(unbiased=False) + 1e-8
+        adv_std = advantages.std() + 1e-8
         advantages = (advantages - adv_mean) / adv_std
 
         batch = buf.to_torch(advantages=advantages, returns=returns)
@@ -256,7 +271,7 @@ def train_ppo(
                 mb_old_values = batch.values[mb_idxs]
 
 
-                logits, values_t = model(mb_obs)
+                logits, values = model(mb_obs)
                 dist = Categorical(logits=logits)
 
                 new_logprobs = dist.log_prob(mb_actions)
@@ -272,7 +287,7 @@ def train_ppo(
 
                 # value loss
                 # simple MSE between returns and value estimates
-                value_loss = F.mse_loss(values_t.squeeze(1), mb_returns)
+                value_loss = F.mse_loss(values, mb_returns)
 
                 loss = policy_loss + config.value_coef * value_loss - config.entropy_coef * entropy_t.mean()
 
@@ -280,6 +295,8 @@ def train_ppo(
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config.max_grad_norm)
                 optimizer.step()
+
+            buf.reset()
                 
         # ----- checkpoints -----
         if (config.checkpoint_interval_updates > 0 and

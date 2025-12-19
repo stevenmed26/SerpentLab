@@ -39,6 +39,11 @@ class RolloutBuffer:
         self.logprobs = np.zeros((self.n_steps,), dtype=np.float32)
 
     def add(self, obs, action, reward, done, value, logprob):
+        # Prevent overflow
+        if self.ptr >= self.n_steps:
+            self.full = True
+            return # ignore extra samples
+        
         self.obs[self.ptr] = obs
         self.actions[self.ptr] = action
         self.rewards[self.ptr] = reward
@@ -76,3 +81,4 @@ class RolloutBuffer:
             returns=torch.from_numpy(returns).to(self.device),
             values=torch.from_numpy(self.values).to(self.device),
         )
+    
