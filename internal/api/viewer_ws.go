@@ -244,7 +244,8 @@ func handleWSGame(w http.ResponseWriter, r *http.Request) {
 			actionDir = game.Direction(rand.Intn(4))
 		}
 
-		_, done := g.Step(actionDir)
+		// _, done := g.Step(actionDir)
+		done := g.Step(actionDir)
 
 		if err := sendFrame(done); err != nil {
 			log.Printf("write frame error: %v", err)

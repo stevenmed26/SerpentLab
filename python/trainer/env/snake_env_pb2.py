@@ -24,22 +24,24 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fsnake_env.proto\x12\nserpentlab\"U\n\x0cResetRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x12\n\nwith_walls\x18\x04 \x01(\x08\"m\n\rResetResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0c\n\x04grid\x18\x02 \x03(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\x12\r\n\x05score\x18\x05 \x01(\x05\x12\x0c\n\x04\x64one\x18\x06 \x01(\x08\"1\n\x0bStepRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x02 \x01(\x05\"|\n\x0cStepResponse\x12\x0c\n\x04grid\x18\x01 \x03(\x05\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0e\n\x06reward\x18\x04 \x01(\x02\x12\x0c\n\x04\x64one\x18\x05 \x01(\x08\x12\r\n\x05score\x18\x06 \x01(\x05\x12\x12\n\nstep_index\x18\x07 \x01(\x05\x32\x83\x01\n\x08SnakeEnv\x12<\n\x05Reset\x12\x18.serpentlab.ResetRequest\x1a\x19.serpentlab.ResetResponse\x12\x39\n\x04Step\x12\x17.serpentlab.StepRequest\x1a\x18.serpentlab.StepResponseB<Z:github.com/stevenmed26/SerpentLab/internal/grpcapi;grpcapib\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0fsnake_env.proto\x12\nserpentlab\"U\n\x0cResetRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x12\n\nwith_walls\x18\x04 \x01(\x08\"m\n\rResetResponse\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0c\n\x04grid\x18\x02 \x03(\x05\x12\r\n\x05width\x18\x03 \x01(\x05\x12\x0e\n\x06height\x18\x04 \x01(\x05\x12\r\n\x05score\x18\x05 \x01(\x05\x12\x0c\n\x04\x64one\x18\x06 \x01(\x08\"1\n\x0bStepRequest\x12\x12\n\nsession_id\x18\x01 \x01(\t\x12\x0e\n\x06\x61\x63tion\x18\x02 \x01(\x05\"\xd9\x01\n\x0cStepResponse\x12\x0c\n\x04grid\x18\x01 \x03(\x05\x12\r\n\x05width\x18\x02 \x01(\x05\x12\x0e\n\x06height\x18\x03 \x01(\x05\x12\x0c\n\x04\x64one\x18\x05 \x01(\x08\x12\r\n\x05score\x18\x06 \x01(\x05\x12\x12\n\nstep_index\x18\x07 \x01(\x05\x12+\n\x0b\x64\x65\x61th_cause\x18\t \x01(\x0e\x32\x16.serpentlab.DeathCause\x12\x12\n\ndelta_dist\x18\n \x01(\t\x12\x10\n\x08\x61te_food\x18\x0b \x01(\x08\x12\x18\n\x10steps_since_food\x18\x0c \x01(\x05*l\n\nDeathCause\x12\x1b\n\x17\x44\x45\x41TH_CAUSE_UNSPECIFIED\x10\x00\x12\x14\n\x10\x44\x45\x41TH_CAUSE_WALL\x10\x01\x12\x14\n\x10\x44\x45\x41TH_CAUSE_SELF\x10\x02\x12\x15\n\x11\x44\x45\x41TH_CAUSE_STALL\x10\x03\x32\x83\x01\n\x08SnakeEnv\x12<\n\x05Reset\x12\x18.serpentlab.ResetRequest\x1a\x19.serpentlab.ResetResponse\x12\x39\n\x04Step\x12\x17.serpentlab.StepRequest\x1a\x18.serpentlab.StepResponseB<Z:github.com/stevenmed26/serpentlab/internal/grpcapi;grpcapib\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'snake_env_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
-  _globals['DESCRIPTOR']._serialized_options = b'Z:github.com/stevenmed26/SerpentLab/internal/grpcapi;grpcapi'
+  _globals['DESCRIPTOR']._serialized_options = b'Z:github.com/stevenmed26/serpentlab/internal/grpcapi;grpcapi'
+  _globals['_DEATHCAUSE']._serialized_start=500
+  _globals['_DEATHCAUSE']._serialized_end=608
   _globals['_RESETREQUEST']._serialized_start=31
   _globals['_RESETREQUEST']._serialized_end=116
   _globals['_RESETRESPONSE']._serialized_start=118
   _globals['_RESETRESPONSE']._serialized_end=227
   _globals['_STEPREQUEST']._serialized_start=229
   _globals['_STEPREQUEST']._serialized_end=278
-  _globals['_STEPRESPONSE']._serialized_start=280
-  _globals['_STEPRESPONSE']._serialized_end=404
-  _globals['_SNAKEENV']._serialized_start=407
-  _globals['_SNAKEENV']._serialized_end=538
+  _globals['_STEPRESPONSE']._serialized_start=281
+  _globals['_STEPRESPONSE']._serialized_end=498
+  _globals['_SNAKEENV']._serialized_start=611
+  _globals['_SNAKEENV']._serialized_end=742
 # @@protoc_insertion_point(module_scope)

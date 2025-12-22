@@ -41,10 +41,12 @@ services:
     environment:
       CHECKPOINT_PATH: "/app/python/models/ppo/checkpoints/snake_ppo_update50.pt"
       PYTHONPATH: "/app/python"
+      POLICY_DETERMINISTIC: "1"
     command: >
       sh -c "python -m trainer.policy_server --algo ppo --checkpoint $${CHECKPOINT_PATH}"
 
   trainer:
+    profiles: ["train"]
     build:
       context: .
       dockerfile: deployments/docker/Dockerfile.python

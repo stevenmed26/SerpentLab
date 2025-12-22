@@ -5,9 +5,12 @@ import numpy as np
 
 import trainer.env.snake_env_pb2 as pb
 import trainer.env.snake_env_pb2_grpc as pb_grpc
+from trainer.common.reward import RewardConfig
 
 from typing import Optional
 
+rcfg = RewardConfig()
+reward = 0
 
 class SnakeEnvClient:
     """
@@ -63,8 +66,15 @@ class SnakeEnvClient:
         resp: pb.StepResponse = self._stub.Step(req)
 
         obs = self._grid_to_obs(resp.grid, resp.width, resp.height)
-        reward = float(resp.reward)
+        # reward = float(resp.reward)
         done = bool(resp.done)
+        if resp.ate_food:
+            reward = rcfg.food_reward(resp.score)
+        elif done:
+            reward = rcfg.death_reward(resp.death_cause)
+        else:
+            reward = rcfg.step_reward(resp.delta_dist, resp.steps_since_food)
+        
         info = {
             "score": int(resp.score),
             "step_index": int(resp.step_index),

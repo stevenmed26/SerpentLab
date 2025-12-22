@@ -23,6 +23,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 policy_net: Optional[SnakeDQN] = None
 HEIGHT: Optional[int] = None
 WIDTH: Optional[int] = None
+DETERMINISTIC = os.getenv("POLICY_DETERMINISTIC", "1") == "1"
 
 
 def load_checkpoint(path: str, algo: str):
@@ -122,7 +123,11 @@ def act():
 
         with torch.no_grad():
             logits, _value = policy_net(state_t)
-            action = int(torch.argmax(logits, dim=1).item())
+            if DETERMINISTIC:
+                action = int(torch.argmax(logits, dim=1).item())
+            else:
+                dist = Categorical(logits=logits)
+                action = int(dist.sample().item())
 
         return jsonify({"action": action})
     

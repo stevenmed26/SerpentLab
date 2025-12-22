@@ -25,6 +25,15 @@ const (
 	DirLeft
 )
 
+type DeathCause int32
+
+const (
+	DeathCause_DEATH_CAUSE_UNSPECIFIED DeathCause = 0
+	DeathCause_DEATH_CAUSE_WALL        DeathCause = 1
+	DeathCause_DEATH_CAUSE_SELF        DeathCause = 2
+	DeathCause_DEATH_CAUSE_STALL       DeathCause = 3
+)
+
 // Config holds configuration for a Snake game instance.
 type Config struct {
 	Width               int
@@ -53,7 +62,9 @@ type Game struct {
 	score          int
 	stepIndex      int
 	stepsSinceFood int
-	lastDeathCause string
+	lastDeathCause DeathCause
+	ateFood        bool
+	deltaDist      float64
 }
 
 // NewGame creates a new game with the given configuration.
@@ -87,6 +98,7 @@ func (g *Game) Reset() {
 	g.score = 0
 	g.stepIndex = 0
 	g.stepsSinceFood = 0
+	g.deltaDist = 0
 }
 
 // abs helper
@@ -100,13 +112,17 @@ func abs(x int) int {
 // Step advances the game by one tick using the provided action.
 //
 // Returns (reward, done).
-func (g *Game) Step(action Direction) (float64, bool) {
+func (g *Game) Step(action Direction) bool {
 	if !g.alive {
-		return 0.0, true
+		// return 0.0, true
+		return true
 	}
 
+	// Reset values
+	g.ateFood = false
+
 	// Epsilon default per-step penalty
-	reward := -0.02
+	// reward := -0.02
 
 	// Update direction - disallow direct reversal if you like.
 	if isValidTurn(g.dir, action) {
@@ -127,25 +143,19 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		next.X++
 	}
 
-	oldDist := abs(head.X-g.food.X) + abs(head.Y-g.food.Y)
-	newDist := abs(next.X-g.food.X) + abs(next.Y-g.food.Y)
+	oldDist := manhattan(head.X, head.Y, g.food.X, g.food.Y)
+	newDist := manhattan(next.X, next.Y, g.food.X, g.food.Y)
 
-	if newDist < oldDist {
-		reward += 0.03 // moved closer
-	} else if newDist > oldDist {
-		reward -= 0.03 // moved farther
-	} else {
-		// Same distance, slightly bad
-		reward -= 0.005
-	}
+	g.deltaDist = float64(oldDist - newDist)
 
 	// Check collisions with walls.
 	if g.cfg.WithWalls {
 		if next.X < 0 || next.X >= g.width || next.Y < 0 || next.Y >= g.height {
 			g.alive = false
-			g.lastDeathCause = "wall"
-			reward = -8.0
-			return reward, true
+			g.lastDeathCause = (DeathCause_DEATH_CAUSE_WALL)
+			// reward = -8.0
+			// return reward, true
+			return true
 		}
 	} else {
 		// Wrap-around mode if !WithWalls.
@@ -165,9 +175,10 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	for _, p := range g.snake {
 		if p == next {
 			g.alive = false
-			g.lastDeathCause = "self"
-			reward = -8.0
-			return reward, true
+			g.lastDeathCause = (DeathCause_DEATH_CAUSE_SELF)
+			// reward = -8.0
+			// return reward, true
+			return true
 		}
 	}
 
@@ -179,9 +190,10 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		g.score++
 
 		// Increasing food reward:
-		foodsEaten := g.score
-		foodReward := 6.0 + 0.5*float64(foodsEaten)
-		reward += foodReward
+		// foodsEaten := g.score
+		// foodReward := 6.0 + 0.5*float64(foodsEaten)
+		// reward += foodReward
+		g.ateFood = true
 		g.stepsSinceFood = 0
 		g.placeFood()
 	} else {
@@ -190,18 +202,18 @@ func (g *Game) Step(action Direction) (float64, bool) {
 		g.stepsSinceFood++
 
 		// --- Hunger penalty after grace period ---
-		const hungerGrace = 10       // free steps after food
-		const hungerScale = 0.02     // per-step penalty
-		const hungerMaxPenalty = 0.4 // cap
+		// const hungerGrace = 10       // free steps after food
+		// const hungerScale = 0.02     // per-step penalty
+		// const hungerMaxPenalty = 0.4 // cap
 
-		if g.stepsSinceFood > hungerGrace {
-			hunger := float64(g.stepsSinceFood - hungerGrace)
-			extra := hunger * hungerScale
-			if extra > hungerMaxPenalty {
-				extra = hungerMaxPenalty
-			}
-			reward -= extra
-		}
+		// if g.stepsSinceFood > hungerGrace {
+		// 	hunger := float64(g.stepsSinceFood - hungerGrace)
+		// 	extra := hunger * hungerScale
+		// 	if extra > hungerMaxPenalty {
+		// 		extra = hungerMaxPenalty
+		// 	}
+		// 	reward -= extra
+		// }
 	}
 
 	g.stepIndex++
@@ -209,12 +221,14 @@ func (g *Game) Step(action Direction) (float64, bool) {
 	// Optional anti-stall condition.
 	if g.cfg.MaxStepsWithoutFood > 0 && g.stepsSinceFood >= g.cfg.MaxStepsWithoutFood {
 		g.alive = false
-		g.lastDeathCause = "stall"
-		reward = -8.0
-		return reward, true
+		g.lastDeathCause = (DeathCause_DEATH_CAUSE_STALL)
+		//reward = -8.0
+		//return reward, true
+		return true
 	}
 
-	return reward, !g.alive
+	// return reward, !g.alive
+	return !g.alive
 }
 
 // Width returns the board width.
@@ -238,7 +252,37 @@ func (g *Game) Score() int { return g.score }
 func (g *Game) StepIndex() int { return g.stepIndex }
 
 // Getter function for death cause
-func (g *Game) DeathCause() string { return g.lastDeathCause }
+func (g *Game) DeathCause() DeathCause { return g.lastDeathCause }
+
+// Getter function for if food was eaten during this step
+func (g *Game) AteFood() bool { return g.ateFood }
+
+// Getter function for how many steps were taken after last food
+func (g *Game) StepsSinceFood() int32 { return int32(g.stepsSinceFood) }
+
+// Getter function for Distance traveled to or away from food
+func (g *Game) DeltaDist() string {
+	distFloat := g.deltaDist
+	if distFloat > 0 {
+		return "closer"
+	}
+	if distFloat < 0 {
+		return "farther"
+	}
+	return "same"
+}
+
+func manhattan(ax, ay, bx, by int) float32 {
+	dx := ax - bx
+	if dx < 0 {
+		dx = -dx
+	}
+	dy := ay - by
+	if dy < 0 {
+		dy = -dy
+	}
+	return float32(dx + dy)
+}
 
 // Grid returns a flattened representation of the board as []int32, matching the proto.
 // 0 = empty, 1 = snake, 2 = food, 3 = wall.

@@ -22,7 +22,7 @@ from trainer.PPO.rollout_buffer import RolloutBuffer
 @dataclass
 class PPOConfig:
     # Env
-    address: str = os.getenv("TRAINER_ENV_ADDRESS", "localhost:50051")
+    address: str = os.getenv("TRAINER_ENV_ADDR", "localhost:50051")
     width: int = 10
     height: int = 10
     with_walls: bool = True
@@ -39,7 +39,9 @@ class PPOConfig:
     learning_rate: float = 2.5e-4
     clip_range: float = 0.2
     value_coef: float = 0.5
-    entropy_coef: float = 0.01
+    entropy_coef_start: float = 0.02
+    entropy_coef_end: float = 0.005
+    entropy_decay_updates: int = 2000
     max_grad_norm: float = 0.5
 
     # Logging / checkpoints
@@ -47,6 +49,21 @@ class PPOConfig:
     checkpoint_dir: str = "../python/models/PPO/checkpoints"
     checkpoint_interval_updates: int = 500
     resume_from: str = ""
+
+def opposite_action(a: int) -> int:
+    return (a + 2) % 4
+
+def mask_logits_no_reverse(logits: torch.Tensor, last_action: Optional[int]) -> torch.Tensor:
+    """
+    logits: (1, num_actions)
+    last_action: int or None
+    """
+    if last_action is None:
+        return logits
+    rev = opposite_action(last_action)
+    masked = logits.clone()
+    masked[..., rev] = -1e9
+    return masked
 
 
 def train_ppo(
@@ -57,6 +74,12 @@ def train_ppo(
     device: Optional[str] = None,
     seed: int = 42,
 ):
+    def entropy_coef(update_idx: int) -> float:
+        if config.entropy_decay_updates <= 0:
+            return config.entropy_coef_end
+        frac = min(1.0, update_idx / config.entropy_decay_updates)
+        return config.entropy_coef_start + frac * (config.entropy_coef_end - config.entropy_coef_start)
+    
     # ----- device and seeds -----
     if device is None or device == "auto":
         device_t = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -101,6 +124,10 @@ def train_ppo(
     C = 4
     num_actions = 4
 
+    # ---- initialize movement ----
+    last_action: Optional[int] = None
+    steps_this_episode = 0
+
     # ----- model + optimizer-----
     model = SnakeActorCritic(height=H, width=W, num_actions=num_actions).to(device_t)
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate)
@@ -131,7 +158,7 @@ def train_ppo(
     update_idx = 0
 
     def finish_episode():
-        nonlocal episode, ep_return, foods_eaten, last_score
+        nonlocal episode, ep_return, foods_eaten, last_score, steps_this_episode
         episode += 1
         episode_rewards.append(ep_return)
         avg_last_50 = (
@@ -145,6 +172,7 @@ def train_ppo(
                     "last_reward": float(ep_return),
                     "avg_last_50": avg_last_50,
                     "foods": foods_eaten,
+                    "steps_episode": int(steps_this_episode),
                 }
             )
 
@@ -167,12 +195,14 @@ def train_ppo(
                 f"[avg_last_50={avg_last_50:.2f}] "
                 f"[foods={foods_eaten}] "
                 f"[steps_total={total_steps}] "
-                f"[update={update_idx}]"
+                f"[update={update_idx}] "
+                f"[steps_ep={steps_this_episode}]"
             )
 
         ep_return = 0.0
         foods_eaten = 0
         last_score = 0
+        steps_this_episode = 0
 
     # reset episode state cleanly
     obs, info = env.reset()
@@ -188,11 +218,13 @@ def train_ppo(
 
         with torch.no_grad():
             logits, value_t = model(obs_t)
+            logits = mask_logits_no_reverse(logits, last_action)
             dist = Categorical(logits=logits)
             action_t = dist.sample()
             logprob_t = dist.log_prob(action_t)
 
         action = int(action_t.item())
+        last_action = action
         value = float(value_t.squeeze(0).item())
         logprob = float(logprob_t.squeeze(0).item())
 
@@ -200,6 +232,8 @@ def train_ppo(
 
         # episode bookkeeping
         ep_return += float(reward)
+        steps_this_episode += 1
+
         current_score = info.get("score", last_score)
         if current_score > last_score:
             foods_eaten += 1
@@ -217,25 +251,30 @@ def train_ppo(
 
         total_steps += 1
         obs = next_obs
-
-        if not buf.full:
-            continue
+        last_action = action
 
         if done:
             finish_episode()
             obs, info = env.reset()
             last_score = info.get("score", 0)
+            last_action = None
+            steps_this_episode = 0
+
+        if not buf.full:
+            continue
 
         if total_steps >= config.total_timesteps:
             break
 
         # bootstrap value for GAE
         model.eval()
-        obs_oh = one_hot_obs(obs, num_channels=C)  # (C,H,W)
-        obs_t = torch.from_numpy(obs_oh).unsqueeze(0).to(device_t)  # (1,C,H,W)
+        obs_oh2 = one_hot_obs(obs, num_channels=C)  # (C,H,W)
+        obs_t2 = torch.from_numpy(obs_oh2).unsqueeze(0).to(device_t)  # (1,C,H,W)
         with torch.no_grad():
-            _logits, last_value_t = model(obs_t)
-        last_value = float(last_value_t.squeeze(0).item())
+            _logits2, last_value_t = model(obs_t2)
+        
+        last_done = bool(buf.dones[buf.n_steps - 1])
+        last_value = 0.0 if last_done else float(last_value_t.squeeze(0).item())
 
         advantages, returns = buf.compute_gae(
             last_value=last_value,
@@ -289,14 +328,15 @@ def train_ppo(
                 # simple MSE between returns and value estimates
                 value_loss = F.mse_loss(values, mb_returns)
 
-                loss = policy_loss + config.value_coef * value_loss - config.entropy_coef * entropy_t.mean()
+                ent_coef = entropy_coef(update_idx)
+                loss = policy_loss + config.value_coef * value_loss - ent_coef * entropy_t.mean()
 
                 optimizer.zero_grad()
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), config.max_grad_norm)
                 optimizer.step()
 
-            buf.reset()
+        buf.reset()
                 
         # ----- checkpoints -----
         if (config.checkpoint_interval_updates > 0 and

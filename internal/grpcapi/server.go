@@ -75,16 +75,21 @@ func (s *EnvServer) Step(ctx context.Context, req *StepRequest) (*StepResponse, 
 	}
 
 	action := toDirection(req.GetAction())
-	reward, done := g.Step(action)
+	//reward, done := g.Step(action)
+	done := g.Step(action)
 
 	resp := &StepResponse{
-		Grid:      g.Grid(),
-		Width:     int32(g.Width()),
-		Height:    int32(g.Height()),
-		Reward:    float32(reward),
-		Done:      done,
-		Score:     int32(g.Score()),
-		StepIndex: int32(g.StepIndex()),
+		Grid:   g.Grid(),
+		Width:  int32(g.Width()),
+		Height: int32(g.Height()),
+		// Reward:    float32(reward),
+		Done:           done,
+		Score:          int32(g.Score()),
+		StepIndex:      int32(g.StepIndex()),
+		DeathCause:     toProtoDeathCause(g.DeathCause()),
+		DeltaDist:      string(g.DeltaDist()),
+		AteFood:        bool(g.AteFood()),
+		StepsSinceFood: int32(g.StepsSinceFood()),
 	}
 
 	if done {
@@ -109,5 +114,18 @@ func toDirection(a int32) game.Direction {
 		// Clamp invalid actions to "no-op" (keep current dir),
 		// but Game.Step will handle validity anyway.
 		return game.DirUp
+	}
+}
+
+func toProtoDeathCause(c game.DeathCause) DeathCause {
+	switch c {
+	case game.DeathCause_DEATH_CAUSE_WALL:
+		return DeathCause_DEATH_CAUSE_WALL
+	case game.DeathCause_DEATH_CAUSE_SELF:
+		return DeathCause_DEATH_CAUSE_SELF
+	case game.DeathCause_DEATH_CAUSE_STALL:
+		return DeathCause_DEATH_CAUSE_STALL
+	default:
+		return DeathCause_DEATH_CAUSE_UNSPECIFIED
 	}
 }

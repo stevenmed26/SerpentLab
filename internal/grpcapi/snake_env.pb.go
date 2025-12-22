@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.1
-// source: snake_env.proto
+// source: proto/snake_env.proto
 
 package grpcapi
 
@@ -21,6 +21,58 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type DeathCause int32
+
+const (
+	DeathCause_DEATH_CAUSE_UNSPECIFIED DeathCause = 0
+	DeathCause_DEATH_CAUSE_WALL        DeathCause = 1
+	DeathCause_DEATH_CAUSE_SELF        DeathCause = 2
+	DeathCause_DEATH_CAUSE_STALL       DeathCause = 3
+)
+
+// Enum value maps for DeathCause.
+var (
+	DeathCause_name = map[int32]string{
+		0: "DEATH_CAUSE_UNSPECIFIED",
+		1: "DEATH_CAUSE_WALL",
+		2: "DEATH_CAUSE_SELF",
+		3: "DEATH_CAUSE_STALL",
+	}
+	DeathCause_value = map[string]int32{
+		"DEATH_CAUSE_UNSPECIFIED": 0,
+		"DEATH_CAUSE_WALL":        1,
+		"DEATH_CAUSE_SELF":        2,
+		"DEATH_CAUSE_STALL":       3,
+	}
+)
+
+func (x DeathCause) Enum() *DeathCause {
+	p := new(DeathCause)
+	*p = x
+	return p
+}
+
+func (x DeathCause) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (DeathCause) Descriptor() protoreflect.EnumDescriptor {
+	return file_proto_snake_env_proto_enumTypes[0].Descriptor()
+}
+
+func (DeathCause) Type() protoreflect.EnumType {
+	return &file_proto_snake_env_proto_enumTypes[0]
+}
+
+func (x DeathCause) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use DeathCause.Descriptor instead.
+func (DeathCause) EnumDescriptor() ([]byte, []int) {
+	return file_proto_snake_env_proto_rawDescGZIP(), []int{0}
+}
+
 // ResetRequest optionally specifies configuration overrides for the new episode.
 // session_id is optional; if empty, the server can generate one and return it.
 type ResetRequest struct {
@@ -36,7 +88,7 @@ type ResetRequest struct {
 
 func (x *ResetRequest) Reset() {
 	*x = ResetRequest{}
-	mi := &file_snake_env_proto_msgTypes[0]
+	mi := &file_proto_snake_env_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -48,7 +100,7 @@ func (x *ResetRequest) String() string {
 func (*ResetRequest) ProtoMessage() {}
 
 func (x *ResetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snake_env_proto_msgTypes[0]
+	mi := &file_proto_snake_env_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -61,7 +113,7 @@ func (x *ResetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetRequest.ProtoReflect.Descriptor instead.
 func (*ResetRequest) Descriptor() ([]byte, []int) {
-	return file_snake_env_proto_rawDescGZIP(), []int{0}
+	return file_proto_snake_env_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ResetRequest) GetSessionId() string {
@@ -112,7 +164,7 @@ type ResetResponse struct {
 
 func (x *ResetResponse) Reset() {
 	*x = ResetResponse{}
-	mi := &file_snake_env_proto_msgTypes[1]
+	mi := &file_proto_snake_env_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -124,7 +176,7 @@ func (x *ResetResponse) String() string {
 func (*ResetResponse) ProtoMessage() {}
 
 func (x *ResetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_snake_env_proto_msgTypes[1]
+	mi := &file_proto_snake_env_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -137,7 +189,7 @@ func (x *ResetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetResponse.ProtoReflect.Descriptor instead.
 func (*ResetResponse) Descriptor() ([]byte, []int) {
-	return file_snake_env_proto_rawDescGZIP(), []int{1}
+	return file_proto_snake_env_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ResetResponse) GetSessionId() string {
@@ -194,7 +246,7 @@ type StepRequest struct {
 
 func (x *StepRequest) Reset() {
 	*x = StepRequest{}
-	mi := &file_snake_env_proto_msgTypes[2]
+	mi := &file_proto_snake_env_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -206,7 +258,7 @@ func (x *StepRequest) String() string {
 func (*StepRequest) ProtoMessage() {}
 
 func (x *StepRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_snake_env_proto_msgTypes[2]
+	mi := &file_proto_snake_env_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -219,7 +271,7 @@ func (x *StepRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepRequest.ProtoReflect.Descriptor instead.
 func (*StepRequest) Descriptor() ([]byte, []int) {
-	return file_snake_env_proto_rawDescGZIP(), []int{2}
+	return file_proto_snake_env_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *StepRequest) GetSessionId() string {
@@ -242,21 +294,23 @@ type StepResponse struct {
 	Grid   []int32                `protobuf:"varint,1,rep,packed,name=grid,proto3" json:"grid,omitempty"`
 	Width  int32                  `protobuf:"varint,2,opt,name=width,proto3" json:"width,omitempty"`
 	Height int32                  `protobuf:"varint,3,opt,name=height,proto3" json:"height,omitempty"`
-	// Reward given for this transition.
-	Reward float32 `protobuf:"fixed32,4,opt,name=reward,proto3" json:"reward,omitempty"`
 	// Whether this step ended the episode (death).
 	Done bool `protobuf:"varint,5,opt,name=done,proto3" json:"done,omitempty"`
 	// Current cumulative score for this episode.
 	Score int32 `protobuf:"varint,6,opt,name=score,proto3" json:"score,omitempty"`
 	// Optional: number of steps taken so far in this episode.
-	StepIndex     int32 `protobuf:"varint,7,opt,name=step_index,json=stepIndex,proto3" json:"step_index,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	StepIndex      int32      `protobuf:"varint,7,opt,name=step_index,json=stepIndex,proto3" json:"step_index,omitempty"`
+	DeathCause     DeathCause `protobuf:"varint,9,opt,name=death_cause,json=deathCause,proto3,enum=serpentlab.DeathCause" json:"death_cause,omitempty"`
+	DeltaDist      string     `protobuf:"bytes,10,opt,name=delta_dist,json=deltaDist,proto3" json:"delta_dist,omitempty"`
+	AteFood        bool       `protobuf:"varint,11,opt,name=ate_food,json=ateFood,proto3" json:"ate_food,omitempty"`
+	StepsSinceFood int32      `protobuf:"varint,12,opt,name=steps_since_food,json=stepsSinceFood,proto3" json:"steps_since_food,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *StepResponse) Reset() {
 	*x = StepResponse{}
-	mi := &file_snake_env_proto_msgTypes[3]
+	mi := &file_proto_snake_env_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -268,7 +322,7 @@ func (x *StepResponse) String() string {
 func (*StepResponse) ProtoMessage() {}
 
 func (x *StepResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_snake_env_proto_msgTypes[3]
+	mi := &file_proto_snake_env_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -281,7 +335,7 @@ func (x *StepResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StepResponse.ProtoReflect.Descriptor instead.
 func (*StepResponse) Descriptor() ([]byte, []int) {
-	return file_snake_env_proto_rawDescGZIP(), []int{3}
+	return file_proto_snake_env_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *StepResponse) GetGrid() []int32 {
@@ -301,13 +355,6 @@ func (x *StepResponse) GetWidth() int32 {
 func (x *StepResponse) GetHeight() int32 {
 	if x != nil {
 		return x.Height
-	}
-	return 0
-}
-
-func (x *StepResponse) GetReward() float32 {
-	if x != nil {
-		return x.Reward
 	}
 	return 0
 }
@@ -333,11 +380,39 @@ func (x *StepResponse) GetStepIndex() int32 {
 	return 0
 }
 
-var File_snake_env_proto protoreflect.FileDescriptor
+func (x *StepResponse) GetDeathCause() DeathCause {
+	if x != nil {
+		return x.DeathCause
+	}
+	return DeathCause_DEATH_CAUSE_UNSPECIFIED
+}
 
-const file_snake_env_proto_rawDesc = "" +
+func (x *StepResponse) GetDeltaDist() string {
+	if x != nil {
+		return x.DeltaDist
+	}
+	return ""
+}
+
+func (x *StepResponse) GetAteFood() bool {
+	if x != nil {
+		return x.AteFood
+	}
+	return false
+}
+
+func (x *StepResponse) GetStepsSinceFood() int32 {
+	if x != nil {
+		return x.StepsSinceFood
+	}
+	return 0
+}
+
+var File_proto_snake_env_proto protoreflect.FileDescriptor
+
+const file_proto_snake_env_proto_rawDesc = "" +
 	"\n" +
-	"\x0fsnake_env.proto\x12\n" +
+	"\x15proto/snake_env.proto\x12\n" +
 	"serpentlab\"z\n" +
 	"\fResetRequest\x12\x1d\n" +
 	"\n" +
@@ -357,71 +432,87 @@ const file_snake_env_proto_rawDesc = "" +
 	"\vStepRequest\x12\x1d\n" +
 	"\n" +
 	"session_id\x18\x01 \x01(\tR\tsessionId\x12\x16\n" +
-	"\x06action\x18\x02 \x01(\x05R\x06action\"\xb1\x01\n" +
+	"\x06action\x18\x02 \x01(\x05R\x06action\"\xb6\x02\n" +
 	"\fStepResponse\x12\x12\n" +
 	"\x04grid\x18\x01 \x03(\x05R\x04grid\x12\x14\n" +
 	"\x05width\x18\x02 \x01(\x05R\x05width\x12\x16\n" +
-	"\x06height\x18\x03 \x01(\x05R\x06height\x12\x16\n" +
-	"\x06reward\x18\x04 \x01(\x02R\x06reward\x12\x12\n" +
+	"\x06height\x18\x03 \x01(\x05R\x06height\x12\x12\n" +
 	"\x04done\x18\x05 \x01(\bR\x04done\x12\x14\n" +
 	"\x05score\x18\x06 \x01(\x05R\x05score\x12\x1d\n" +
 	"\n" +
-	"step_index\x18\a \x01(\x05R\tstepIndex2\x83\x01\n" +
+	"step_index\x18\a \x01(\x05R\tstepIndex\x127\n" +
+	"\vdeath_cause\x18\t \x01(\x0e2\x16.serpentlab.DeathCauseR\n" +
+	"deathCause\x12\x1d\n" +
+	"\n" +
+	"delta_dist\x18\n" +
+	" \x01(\tR\tdeltaDist\x12\x19\n" +
+	"\bate_food\x18\v \x01(\bR\aateFood\x12(\n" +
+	"\x10steps_since_food\x18\f \x01(\x05R\x0estepsSinceFood*l\n" +
+	"\n" +
+	"DeathCause\x12\x1b\n" +
+	"\x17DEATH_CAUSE_UNSPECIFIED\x10\x00\x12\x14\n" +
+	"\x10DEATH_CAUSE_WALL\x10\x01\x12\x14\n" +
+	"\x10DEATH_CAUSE_SELF\x10\x02\x12\x15\n" +
+	"\x11DEATH_CAUSE_STALL\x10\x032\x83\x01\n" +
 	"\bSnakeEnv\x12<\n" +
 	"\x05Reset\x12\x18.serpentlab.ResetRequest\x1a\x19.serpentlab.ResetResponse\x129\n" +
 	"\x04Step\x12\x17.serpentlab.StepRequest\x1a\x18.serpentlab.StepResponseB<Z:github.com/stevenmed26/serpentlab/internal/grpcapi;grpcapib\x06proto3"
 
 var (
-	file_snake_env_proto_rawDescOnce sync.Once
-	file_snake_env_proto_rawDescData []byte
+	file_proto_snake_env_proto_rawDescOnce sync.Once
+	file_proto_snake_env_proto_rawDescData []byte
 )
 
-func file_snake_env_proto_rawDescGZIP() []byte {
-	file_snake_env_proto_rawDescOnce.Do(func() {
-		file_snake_env_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_snake_env_proto_rawDesc), len(file_snake_env_proto_rawDesc)))
+func file_proto_snake_env_proto_rawDescGZIP() []byte {
+	file_proto_snake_env_proto_rawDescOnce.Do(func() {
+		file_proto_snake_env_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_snake_env_proto_rawDesc), len(file_proto_snake_env_proto_rawDesc)))
 	})
-	return file_snake_env_proto_rawDescData
+	return file_proto_snake_env_proto_rawDescData
 }
 
-var file_snake_env_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_snake_env_proto_goTypes = []any{
-	(*ResetRequest)(nil),  // 0: serpentlab.ResetRequest
-	(*ResetResponse)(nil), // 1: serpentlab.ResetResponse
-	(*StepRequest)(nil),   // 2: serpentlab.StepRequest
-	(*StepResponse)(nil),  // 3: serpentlab.StepResponse
+var file_proto_snake_env_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_proto_snake_env_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_snake_env_proto_goTypes = []any{
+	(DeathCause)(0),       // 0: serpentlab.DeathCause
+	(*ResetRequest)(nil),  // 1: serpentlab.ResetRequest
+	(*ResetResponse)(nil), // 2: serpentlab.ResetResponse
+	(*StepRequest)(nil),   // 3: serpentlab.StepRequest
+	(*StepResponse)(nil),  // 4: serpentlab.StepResponse
 }
-var file_snake_env_proto_depIdxs = []int32{
-	0, // 0: serpentlab.SnakeEnv.Reset:input_type -> serpentlab.ResetRequest
-	2, // 1: serpentlab.SnakeEnv.Step:input_type -> serpentlab.StepRequest
-	1, // 2: serpentlab.SnakeEnv.Reset:output_type -> serpentlab.ResetResponse
-	3, // 3: serpentlab.SnakeEnv.Step:output_type -> serpentlab.StepResponse
-	2, // [2:4] is the sub-list for method output_type
-	0, // [0:2] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+var file_proto_snake_env_proto_depIdxs = []int32{
+	0, // 0: serpentlab.StepResponse.death_cause:type_name -> serpentlab.DeathCause
+	1, // 1: serpentlab.SnakeEnv.Reset:input_type -> serpentlab.ResetRequest
+	3, // 2: serpentlab.SnakeEnv.Step:input_type -> serpentlab.StepRequest
+	2, // 3: serpentlab.SnakeEnv.Reset:output_type -> serpentlab.ResetResponse
+	4, // 4: serpentlab.SnakeEnv.Step:output_type -> serpentlab.StepResponse
+	3, // [3:5] is the sub-list for method output_type
+	1, // [1:3] is the sub-list for method input_type
+	1, // [1:1] is the sub-list for extension type_name
+	1, // [1:1] is the sub-list for extension extendee
+	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_snake_env_proto_init() }
-func file_snake_env_proto_init() {
-	if File_snake_env_proto != nil {
+func init() { file_proto_snake_env_proto_init() }
+func file_proto_snake_env_proto_init() {
+	if File_proto_snake_env_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_snake_env_proto_rawDesc), len(file_snake_env_proto_rawDesc)),
-			NumEnums:      0,
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_snake_env_proto_rawDesc), len(file_proto_snake_env_proto_rawDesc)),
+			NumEnums:      1,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_snake_env_proto_goTypes,
-		DependencyIndexes: file_snake_env_proto_depIdxs,
-		MessageInfos:      file_snake_env_proto_msgTypes,
+		GoTypes:           file_proto_snake_env_proto_goTypes,
+		DependencyIndexes: file_proto_snake_env_proto_depIdxs,
+		EnumInfos:         file_proto_snake_env_proto_enumTypes,
+		MessageInfos:      file_proto_snake_env_proto_msgTypes,
 	}.Build()
-	File_snake_env_proto = out.File
-	file_snake_env_proto_goTypes = nil
-	file_snake_env_proto_depIdxs = nil
+	File_proto_snake_env_proto = out.File
+	file_proto_snake_env_proto_goTypes = nil
+	file_proto_snake_env_proto_depIdxs = nil
 }

@@ -25,6 +25,13 @@ message ResetRequest {
   bool  with_walls  = 4;
 }
 
+enum DeathCause {
+  DEATH_CAUSE_UNSPECIFIED = 0;
+  DEATH_CAUSE_WALL = 1;
+  DEATH_CAUSE_SELF = 2;
+  DEATH_CAUSE_STALL = 3;
+}
+
 // ResetResponse returns the initial state of the environment.
 message ResetResponse {
   // The session_id that will be used for subsequent Step calls.
@@ -60,7 +67,7 @@ message StepResponse {
   int32 height = 3;
 
   // Reward given for this transition.
-  float reward = 4;
+  // float reward = 4;
 
   // Whether this step ended the episode (death).
   bool done = 5;
@@ -70,4 +77,9 @@ message StepResponse {
 
   // Optional: number of steps taken so far in this episode.
   int32 step_index = 7;
+
+  DeathCause death_cause = 9;
+  string delta_dist = 10;
+  bool ate_food = 11;
+  int32 steps_since_food = 12;
 }
