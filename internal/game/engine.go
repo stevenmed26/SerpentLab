@@ -101,14 +101,6 @@ func (g *Game) Reset() {
 	g.deltaDist = 0
 }
 
-// abs helper
-func abs(x int) int {
-	if x < 0 {
-		return -x
-	}
-	return x
-}
-
 // Step advances the game by one tick using the provided action.
 //
 // Returns (reward, done).
